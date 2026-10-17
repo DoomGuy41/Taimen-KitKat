@@ -1,0 +1,140 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Sat, 17 Oct 2026 17:31:34 +0000
+Subject: [PATCH 5/5] bootanimation: trimmed frames (trim.txt) and background
+ colour, as in Android 7+
+
+Recent animations (Pixel) only store the useful area of each frame, placed by trim.txt, and
+give a background colour per part (#RRGGBB in desc.txt). Without this KitKat stretched every
+frame over the whole canvas and treated trim.txt as a frame.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ cmds/bootanimation/BootAnimation.cpp | 45 +++++++++++++++++++++++++++-
+ cmds/bootanimation/BootAnimation.h   |  5 ++++
+ 2 files changed, 49 insertions(+), 1 deletion(-)
+
+diff --git a/cmds/bootanimation/BootAnimation.cpp b/cmds/bootanimation/BootAnimation.cpp
+index ad4e4c87..b9470fef 100644
+--- a/cmds/bootanimation/BootAnimation.cpp
++++ b/cmds/bootanimation/BootAnimation.cpp
+@@ -416,6 +416,7 @@ bool BootAnimation::movie()
+         const char* l = line.string();
+         int fps, width, height, count, pause;
+         char path[256];
++        char color[16];
+         char pathType;
+         if (sscanf(l, "%d %d %d", &width, &height, &fps) == 3) {
+             //LOGD("> w=%d, h=%d, fps=%d", width, height, fps);
+@@ -430,6 +431,14 @@ bool BootAnimation::movie()
+             part.count = count;
+             part.pause = pause;
+             part.path = path;
++            part.trimMap = NULL;
++            part.bgRed = part.bgGreen = part.bgBlue = 0;
++            unsigned int rgb;
++            if (sscanf(l, " %*c %*d %*d %*s #%6[0-9a-fA-F]", color) == 1 && sscanf(color, "%x", &rgb) == 1) {
++                part.bgRed = ((rgb >> 16) & 0xff) / 255.0f;
++                part.bgGreen = ((rgb >> 8) & 0xff) / 255.0f;
++                part.bgBlue = (rgb & 0xff) / 255.0f;
++            }
+             animation.parts.add(part);
+         }
+ 
+@@ -453,10 +462,14 @@ bool BootAnimation::movie()
+                         if (zip.getEntryInfo(entry, &method, 0, 0, 0, 0, 0)) {
+                             if (method == ZipFileRO::kCompressStored) {
+                                 FileMap* map = zip.createEntryFileMap(entry);
+-                                if (map) {
++                                if (map && leaf == "trim.txt") {
++                                    animation.parts.editItemAt(j).trimMap = map;
++                                } else if (map) {
+                                     Animation::Frame frame;
+                                     frame.name = leaf;
+                                     frame.map = map;
++                                    frame.trimX = frame.trimY = 0;
++                                    frame.trimWidth = frame.trimHeight = -1;
+                                     Animation::Part& part(animation.parts.editItemAt(j));
+                                     part.frames.add(frame);
+                                 }
+@@ -468,6 +481,28 @@ bool BootAnimation::movie()
+         }
+     }
+ 
++    // trim.txt: one "WxH+X+Y" line per frame, in frame order
++    for (size_t j=0 ; j<pcount ; j++) {
++        Animation::Part& part(animation.parts.editItemAt(j));
++        if (!part.trimMap)
++            continue;
++        String8 trims((char const*)part.trimMap->getDataPtr(), part.trimMap->getDataLength());
++        const char* t = trims.string();
++        for (size_t k=0 ; k<part.frames.size() && *t ; k++) {
++            Animation::Frame& frame(part.frames.editItemAt(k));
++            int w, h, x, y;
++            if (sscanf(t, "%dx%d+%d+%d", &w, &h, &x, &y) == 4) {
++                frame.trimWidth = w;
++                frame.trimHeight = h;
++                frame.trimX = x;
++                frame.trimY = y;
++            }
++            const char* nl = strchr(t, '\n');
++            if (!nl) break;
++            t = nl + 1;
++        }
++    }
++
+     // clear screen
+     glShadeModel(GL_FLAT);
+     glDisable(GL_DITHER);
+@@ -498,6 +533,7 @@ bool BootAnimation::movie()
+         const Animation::Part& part(animation.parts[i]);
+         const size_t fcount = part.frames.size();
+         glBindTexture(GL_TEXTURE_2D, 0);
++        glClearColor(part.bgRed, part.bgGreen, part.bgBlue, 1.0f);
+ 
+         for (int r=0 ; !part.count || r<part.count ; r++) {
+             // Exit any non playuntil complete parts immediately
+@@ -522,6 +558,12 @@ bool BootAnimation::movie()
+                             frame.map->getDataLength());
+                 }
+ 
++                if (frame.trimWidth >= 0) {
++                    // trimmed frame: whole screen cleared, frame at its place (GL origin at the bottom)
++                    glClear(GL_COLOR_BUFFER_BIT);
++                    glDrawTexiOES(xc + frame.trimX, mHeight - (yc + frame.trimY + frame.trimHeight), 0,
++                            frame.trimWidth, frame.trimHeight);
++                } else {
+                 if (!clearReg.isEmpty()) {
+                     Region::const_iterator head(clearReg.begin());
+                     Region::const_iterator tail(clearReg.end());
+@@ -535,6 +577,7 @@ bool BootAnimation::movie()
+                     glDisable(GL_SCISSOR_TEST);
+                 }
+                 glDrawTexiOES(xc, yc, 0, animation.width, animation.height);
++                }
+                 eglSwapBuffers(mDisplay, mSurface);
+ 
+                 nsecs_t now = systemTime();
+diff --git a/cmds/bootanimation/BootAnimation.h b/cmds/bootanimation/BootAnimation.h
+index fa908eb0..20722d90 100644
+--- a/cmds/bootanimation/BootAnimation.h
++++ b/cmds/bootanimation/BootAnimation.h
+@@ -61,6 +61,9 @@ private:
+             String8 name;
+             FileMap* map;
+             mutable GLuint tid;
++            // position of the trimmed frame in the animation (trim.txt, as in Android 7+);
++            // trimWidth < 0: full-size frame
++            int trimX, trimY, trimWidth, trimHeight;
+             bool operator < (const Frame& rhs) const {
+                 return name < rhs.name;
+             }
+@@ -71,6 +74,8 @@ private:
+             String8 path;
+             SortedVector<Frame> frames;
+             bool playUntilComplete;
++            FileMap* trimMap;                 // trim.txt of the part
++            float bgRed, bgGreen, bgBlue;     // background colour (#RRGGBB in desc.txt)
+         };
+         int fps;
+         int width;

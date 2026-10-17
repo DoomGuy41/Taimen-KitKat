@@ -1,0 +1,29 @@
+/dev/kgsl-3d0             0666   system     system
+/dev/ion                  0666   system     system
+/dev/graphics/fb*         0660   system     graphics
+/dev/input/*              0660   root       input
+/dev/kmsg                 0622   root       root
+
+# Qualcomm daemons of the Android 11 chroot (rmt_storage: modem shared memory)
+/dev/uio0                 0660   system     system
+/dev/uio1                 0660   system     system
+/dev/wlan                 0666   system     system
+
+# Bluetooth (WCN3990): UART and power control for the com.android.bluetooth process
+/dev/ttyHS0               0660   bluetooth  bluetooth
+/dev/btpower              0660   bluetooth  bluetooth
+
+# Modem AT port (reference RIL)
+/dev/at_mdm0              0660   radio      radio
+
+# video: Venus (video32 decoder, video33 encoder) for mediaserver (camera group)
+/dev/video32              0660   system     camera
+/dev/video33              0660   system     camera
+
+# camera: MSM nodes (sensors, CSI, VFE, CPP, JPEG) and Easel for the camera HAL (mediaserver)
+/dev/video*               0660   system     camera
+/dev/v4l-subdev*          0660   system     camera
+/dev/media*               0660   system     camera
+/dev/jpeg*                0660   system     camera
+/dev/mnh_sm               0660   system     camera
+/dev/easelcomm-client     0660   system     camera

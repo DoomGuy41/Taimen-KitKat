@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Thu, 15 Oct 2026 22:23:20 +0000
+Subject: [PATCH 6/8] fs_config: executables of the Android 11 chroot
+ (/system/v11)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ include/private/android_filesystem_config.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/include/private/android_filesystem_config.h b/include/private/android_filesystem_config.h
+index 77e5c5d..4475110 100644
+--- a/include/private/android_filesystem_config.h
++++ b/include/private/android_filesystem_config.h
+@@ -220,6 +220,10 @@ static const struct fs_path_config android_files[] = {
+     { 00755, AID_ROOT,      AID_ROOT,      0, "system/glr/hwchroot" },
+     { 00755, AID_ROOT,      AID_ROOT,      0, "system/glr/root/glrenderd" },
+     { 00755, AID_ROOT,      AID_ROOT,      0, "system/glr/root/system/bin/linker" },
++    /* Pixel 2 XL: Android 11 chroot of the modem/wifi daemons */
++    { 00755, AID_ROOT,      AID_ROOT,      0, "system/v11/hwchroot" },
++    { 00755, AID_ROOT,      AID_ROOT,      0, "system/v11/root/system/bin/linker64" },
++    { 00755, AID_ROOT,      AID_ROOT,      0, "system/v11/root/vendor/bin/*" },
+     { 00440, AID_ROOT,      AID_SHELL,     0, "system/etc/init.goldfish.rc" },
+     { 00550, AID_ROOT,      AID_SHELL,     0, "system/etc/init.goldfish.sh" },
+     { 00440, AID_ROOT,      AID_SHELL,     0, "system/etc/init.trout.rc" },

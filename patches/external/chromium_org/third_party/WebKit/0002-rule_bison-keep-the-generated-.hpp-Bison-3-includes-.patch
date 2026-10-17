@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 21:16:46 +0000
+Subject: [PATCH 2/2] rule_bison: keep the generated .hpp (Bison >= 3 includes
+ it from the .cpp)
+
+---
+ Source/build/scripts/rule_bison.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Source/build/scripts/rule_bison.py b/Source/build/scripts/rule_bison.py
+index 97a0541..ae5b592 100644
+--- a/Source/build/scripts/rule_bison.py
++++ b/Source/build/scripts/rule_bison.py
+@@ -92,7 +92,7 @@ assert outputHTmp != None
+ outputHFile = open(outputHTmp)
+ outputHContents = outputHFile.read()
+ outputHFile.close()
+-os.unlink(outputHTmp)
++# Bison >= 3 includes the .hpp from the .cpp: keep the file (instead of os.unlink)
+ 
+ # Rewrite the generated header with #include guards.
+ outputH = os.path.join(outputDir, inputRoot + '.h')

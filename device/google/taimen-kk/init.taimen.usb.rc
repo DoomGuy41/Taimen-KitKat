@@ -1,0 +1,69 @@
+# USB through configfs + FunctionFS (the 4.4 kernel no longer has /sys/class/android_usb)
+# Functions: MTP (f_mtp, /dev/mtp_usb) and adb (FunctionFS). The configuration follows
+# sys.usb.config, which KitKat derives from persist.sys.usb.config (mtp in user builds, adb in eng)
+# and UsbDeviceManager changes when USB debugging is switched on or off. Pixel product IDs.
+on early-boot
+    mount configfs none /config
+    mkdir /config/usb_gadget/g1 0770
+    mkdir /config/usb_gadget/g1/strings/0x409 0770
+    write /config/usb_gadget/g1/bcdUSB 0x0200
+    write /config/usb_gadget/g1/idVendor 0x18d1
+    write /config/usb_gadget/g1/bcdDevice 0x0440
+    write /config/usb_gadget/g1/strings/0x409/serialnumber ${ro.serialno}
+    write /config/usb_gadget/g1/strings/0x409/manufacturer Google
+    write /config/usb_gadget/g1/strings/0x409/product "Pixel 2 XL"
+    mkdir /config/usb_gadget/g1/functions/mtp.gs0
+    mkdir /config/usb_gadget/g1/functions/ffs.adb
+    mkdir /config/usb_gadget/g1/configs/b.1 0770
+    mkdir /config/usb_gadget/g1/configs/b.1/strings/0x409 0770
+    mkdir /dev/usb-ffs 0775 shell shell
+    mkdir /dev/usb-ffs/adb 0770 shell shell
+    mount functionfs adb /dev/usb-ffs/adb rmode=0770,fmode=0660,uid=2000,gid=2000
+    start usb-bind
+
+# The UDC is detached before every change. With adb, usb-bind attaches it once adbd has written
+# its descriptors; without adb, it is attached here.
+on property:sys.usb.config=none
+    stop adbd
+    write /config/usb_gadget/g1/UDC "none"
+    rm /config/usb_gadget/g1/configs/b.1/f1
+    rm /config/usb_gadget/g1/configs/b.1/f2
+    setprop sys.usb.state none
+
+on property:sys.usb.config=mtp
+    stop adbd
+    write /config/usb_gadget/g1/UDC "none"
+    rm /config/usb_gadget/g1/configs/b.1/f1
+    rm /config/usb_gadget/g1/configs/b.1/f2
+    write /config/usb_gadget/g1/idProduct 0x4ee1
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration mtp
+    symlink /config/usb_gadget/g1/functions/mtp.gs0 /config/usb_gadget/g1/configs/b.1/f1
+    write /config/usb_gadget/g1/UDC a800000.dwc3
+    setprop sys.usb.state mtp
+
+on property:sys.usb.config=mtp,adb
+    write /config/usb_gadget/g1/UDC "none"
+    rm /config/usb_gadget/g1/configs/b.1/f1
+    rm /config/usb_gadget/g1/configs/b.1/f2
+    write /config/usb_gadget/g1/idProduct 0x4ee2
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration mtp_adb
+    symlink /config/usb_gadget/g1/functions/mtp.gs0 /config/usb_gadget/g1/configs/b.1/f1
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f2
+    start adbd
+    setprop sys.usb.state mtp,adb
+
+on property:sys.usb.config=adb
+    write /config/usb_gadget/g1/UDC "none"
+    rm /config/usb_gadget/g1/configs/b.1/f1
+    rm /config/usb_gadget/g1/configs/b.1/f2
+    write /config/usb_gadget/g1/idProduct 0x4ee7
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration adb
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
+    start adbd
+    setprop sys.usb.state adb
+
+# KitKat's adbd writes its FunctionFS descriptors, then the USB controller is attached
+service usb-bind /sbin/busybox sh /init.taimen.usb.sh
+    class core
+    user root
+    disabled

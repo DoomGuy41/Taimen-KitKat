@@ -1,0 +1,1065 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Thu, 15 Oct 2026 18:30:37 +0000
+Subject: [PATCH 1/3] libbinder/servicemanager: 64-bit binder ABI, EGL software
+ fallback
+
+From retro-android-ports by pukikiko: https://github.com/pukikiko/retro-android-ports
+---
+ cmds/servicemanager/binder.c          |  75 +++++++++-------
+ cmds/servicemanager/binder.h          |  21 ++---
+ cmds/servicemanager/service_manager.c |   2 +-
+ include/binder/IPCThreadState.h       |   2 +-
+ include/binder/Parcel.h               |  13 +--
+ libs/binder/IPCThreadState.cpp        |  93 ++++++++++----------
+ libs/binder/Parcel.cpp                | 122 +++++++++++++++-----------
+ opengl/libs/EGL/Loader.cpp            |  60 +++++++------
+ 8 files changed, 215 insertions(+), 173 deletions(-)
+
+diff --git a/cmds/servicemanager/binder.c b/cmds/servicemanager/binder.c
+index 1985756..7396a25 100644
+--- a/cmds/servicemanager/binder.c
++++ b/cmds/servicemanager/binder.c
+@@ -145,7 +145,7 @@ int binder_write(struct binder_state *bs, void *data, unsigned len)
+     int res;
+     bwr.write_size = len;
+     bwr.write_consumed = 0;
+-    bwr.write_buffer = (unsigned) data;
++    bwr.write_buffer = (uintptr_t) data;
+     bwr.read_size = 0;
+     bwr.read_consumed = 0;
+     bwr.read_buffer = 0;
+@@ -164,13 +164,13 @@ void binder_send_reply(struct binder_state *bs,
+ {
+     struct {
+         uint32_t cmd_free;
+-        void *buffer;
++        binder_uintptr_t buffer;
+         uint32_t cmd_reply;
+         struct binder_txn txn;
+     } __attribute__((packed)) data;
+ 
+     data.cmd_free = BC_FREE_BUFFER;
+-    data.buffer = buffer_to_free;
++    data.buffer = (uintptr_t) buffer_to_free;
+     data.cmd_reply = BC_REPLY;
+     data.txn.target = 0;
+     data.txn.cookie = 0;
+@@ -179,14 +179,14 @@ void binder_send_reply(struct binder_state *bs,
+         data.txn.flags = TF_STATUS_CODE;
+         data.txn.data_size = sizeof(int);
+         data.txn.offs_size = 0;
+-        data.txn.data = &status;
++        data.txn.data = (uintptr_t) &status;
+         data.txn.offs = 0;
+     } else {
+         data.txn.flags = 0;
+         data.txn.data_size = reply->data - reply->data0;
+         data.txn.offs_size = ((char*) reply->offs) - ((char*) reply->offs0);
+-        data.txn.data = reply->data0;
+-        data.txn.offs = reply->offs0;
++        data.txn.data = (uintptr_t) reply->data0;
++        data.txn.offs = (uintptr_t) reply->offs0;
+     }
+     binder_write(bs, &data, sizeof(data));
+ }
+@@ -212,9 +212,10 @@ int binder_parse(struct binder_state *bs, struct binder_io *bio,
+         case BR_RELEASE:
+         case BR_DECREFS:
+ #if TRACE
+-            fprintf(stderr,"  %08x %08x\n", ptr[0], ptr[1]);
++            fprintf(stderr,"  %08x %08x\n", ptr[0], ptr[2]);
+ #endif
+-            ptr += 2;
++            /* binder_ptr_cookie, two 64-bit words */
++            ptr += 4;
+             break;
+         case BR_TRANSACTION: {
+             struct binder_txn *txn = (void *) ptr;
+@@ -232,7 +233,7 @@ int binder_parse(struct binder_state *bs, struct binder_io *bio,
+                 bio_init(&reply, rdata, sizeof(rdata), 4);
+                 bio_init_from_txn(&msg, txn);
+                 res = func(bs, txn, &msg, &reply);
+-                binder_send_reply(bs, &reply, txn->data, res);
++                binder_send_reply(bs, &reply, (void *)(uintptr_t) txn->data, res);
+             }
+             ptr += sizeof(*txn) / sizeof(uint32_t);
+             break;
+@@ -255,7 +256,9 @@ int binder_parse(struct binder_state *bs, struct binder_io *bio,
+             break;
+         }
+         case BR_DEAD_BINDER: {
+-            struct binder_death *death = (void*) *ptr++;
++            struct binder_death *death =
++                (void *)(uintptr_t) *(binder_uintptr_t *) ptr;
++            ptr += sizeof(binder_uintptr_t) / sizeof(uint32_t);
+             death->func(bs, death->ptr);
+             break;
+         }
+@@ -292,11 +295,15 @@ void binder_release(struct binder_state *bs, void *ptr)
+ 
+ void binder_link_to_death(struct binder_state *bs, void *ptr, struct binder_death *death)
+ {
+-    uint32_t cmd[3];
+-    cmd[0] = BC_REQUEST_DEATH_NOTIFICATION;
+-    cmd[1] = (uint32_t) ptr;
+-    cmd[2] = (uint32_t) death;
+-    binder_write(bs, cmd, sizeof(cmd));
++    struct {
++        uint32_t cmd;
++        struct binder_handle_cookie payload;
++    } __attribute__((packed)) data;
++
++    data.cmd = BC_REQUEST_DEATH_NOTIFICATION;
++    data.payload.handle = (uint32_t) ptr;
++    data.payload.cookie = (uintptr_t) death;
++    binder_write(bs, &data, sizeof(data));
+ }
+ 
+ 
+@@ -318,23 +325,23 @@ int binder_call(struct binder_state *bs,
+     }
+ 
+     writebuf.cmd = BC_TRANSACTION;
+-    writebuf.txn.target = target;
++    writebuf.txn.target = (uintptr_t) target;
+     writebuf.txn.code = code;
+     writebuf.txn.flags = 0;
+     writebuf.txn.data_size = msg->data - msg->data0;
+     writebuf.txn.offs_size = ((char*) msg->offs) - ((char*) msg->offs0);
+-    writebuf.txn.data = msg->data0;
+-    writebuf.txn.offs = msg->offs0;
++    writebuf.txn.data = (uintptr_t) msg->data0;
++    writebuf.txn.offs = (uintptr_t) msg->offs0;
+ 
+     bwr.write_size = sizeof(writebuf);
+     bwr.write_consumed = 0;
+-    bwr.write_buffer = (unsigned) &writebuf;
++    bwr.write_buffer = (uintptr_t) &writebuf;
+     
+     hexdump(msg->data0, msg->data - msg->data0);
+     for (;;) {
+         bwr.read_size = sizeof(readbuf);
+         bwr.read_consumed = 0;
+-        bwr.read_buffer = (unsigned) readbuf;
++        bwr.read_buffer = (uintptr_t) readbuf;
+ 
+         res = ioctl(bs->fd, BINDER_WRITE_READ, &bwr);
+ 
+@@ -370,7 +377,7 @@ void binder_loop(struct binder_state *bs, binder_handler func)
+     for (;;) {
+         bwr.read_size = sizeof(readbuf);
+         bwr.read_consumed = 0;
+-        bwr.read_buffer = (unsigned) readbuf;
++        bwr.read_buffer = (uintptr_t) readbuf;
+ 
+         res = ioctl(bs->fd, BINDER_WRITE_READ, &bwr);
+ 
+@@ -393,17 +400,17 @@ void binder_loop(struct binder_state *bs, binder_handler func)
+ 
+ void bio_init_from_txn(struct binder_io *bio, struct binder_txn *txn)
+ {
+-    bio->data = bio->data0 = txn->data;
+-    bio->offs = bio->offs0 = txn->offs;
++    bio->data = bio->data0 = (char *)(uintptr_t) txn->data;
++    bio->offs = bio->offs0 = (binder_size_t *)(uintptr_t) txn->offs;
+     bio->data_avail = txn->data_size;
+-    bio->offs_avail = txn->offs_size / 4;
++    bio->offs_avail = txn->offs_size / sizeof(binder_size_t);
+     bio->flags = BIO_F_SHARED;
+ }
+ 
+ void bio_init(struct binder_io *bio, void *data,
+               uint32_t maxdata, uint32_t maxoffs)
+ {
+-    uint32_t n = maxoffs * sizeof(uint32_t);
++    uint32_t n = maxoffs * sizeof(binder_size_t);
+ 
+     if (n > maxdata) {
+         bio->flags = BIO_F_OVERFLOW;
+@@ -438,10 +445,14 @@ void binder_done(struct binder_state *bs,
+                  struct binder_io *reply)
+ {
+     if (reply->flags & BIO_F_SHARED) {
+-        uint32_t cmd[2];
+-        cmd[0] = BC_FREE_BUFFER;
+-        cmd[1] = (uint32_t) reply->data0;
+-        binder_write(bs, cmd, sizeof(cmd));
++        struct {
++            uint32_t cmd;
++            binder_uintptr_t buffer;
++        } __attribute__((packed)) data;
++
++        data.cmd = BC_FREE_BUFFER;
++        data.buffer = (uintptr_t) reply->data0;
++        binder_write(bs, &data, sizeof(data));
+         reply->flags = 0;
+     }
+ }
+@@ -479,7 +490,7 @@ void bio_put_obj(struct binder_io *bio, void *ptr)
+ 
+     obj->flags = 0x7f | FLAT_BINDER_FLAG_ACCEPTS_FDS;
+     obj->type = BINDER_TYPE_BINDER;
+-    obj->pointer = ptr;
++    obj->pointer = (uintptr_t) ptr;
+     obj->cookie = 0;
+ }
+ 
+@@ -497,7 +508,7 @@ void bio_put_ref(struct binder_io *bio, void *ptr)
+ 
+     obj->flags = 0x7f | FLAT_BINDER_FLAG_ACCEPTS_FDS;
+     obj->type = BINDER_TYPE_HANDLE;
+-    obj->pointer = ptr;
++    obj->pointer = (uintptr_t) ptr;
+     obj->cookie = 0;
+ }
+ 
+@@ -610,7 +621,7 @@ void *bio_get_ref(struct binder_io *bio)
+         return 0;
+ 
+     if (obj->type == BINDER_TYPE_HANDLE)
+-        return obj->pointer;
++        return (void *)(uintptr_t) obj->pointer;
+ 
+     return 0;
+ }
+diff --git a/cmds/servicemanager/binder.h b/cmds/servicemanager/binder.h
+index d8c51ef..8e358a5 100644
+--- a/cmds/servicemanager/binder.h
++++ b/cmds/servicemanager/binder.h
+@@ -9,39 +9,40 @@
+ 
+ struct binder_state;
+ 
++/* these mirror the kernel's 64-bit abi, pointers and sizes are 64 bits wide */
+ struct binder_object
+ {
+     uint32_t type;
+     uint32_t flags;
+-    void *pointer;
+-    void *cookie;
++    binder_uintptr_t pointer;
++    binder_uintptr_t cookie;
+ };
+ 
+ struct binder_txn
+ {
+-    void *target;
+-    void *cookie;
++    binder_uintptr_t target;
++    binder_uintptr_t cookie;
+     uint32_t code;
+     uint32_t flags;
+ 
+     uint32_t sender_pid;
+     uint32_t sender_euid;
+ 
+-    uint32_t data_size;
+-    uint32_t offs_size;
+-    void *data;
+-    void *offs;
++    binder_size_t data_size;
++    binder_size_t offs_size;
++    binder_uintptr_t data;
++    binder_uintptr_t offs;
+ };
+ 
+ struct binder_io
+ {
+     char *data;            /* pointer to read/write from */
+-    uint32_t *offs;        /* array of offsets */
++    binder_size_t *offs;   /* array of offsets */
+     uint32_t data_avail;   /* bytes available in data buffer */
+     uint32_t offs_avail;   /* entries available in offsets array */
+ 
+     char *data0;           /* start of data buffer */
+-    uint32_t *offs0;       /* start of offsets buffer */
++    binder_size_t *offs0;  /* start of offsets buffer */
+     uint32_t flags;
+     uint32_t unused;
+ };
+diff --git a/cmds/servicemanager/service_manager.c b/cmds/servicemanager/service_manager.c
+index 3eaf1eb..6d8d6e7 100644
+--- a/cmds/servicemanager/service_manager.c
++++ b/cmds/servicemanager/service_manager.c
+@@ -215,7 +215,7 @@ int svcmgr_handler(struct binder_state *bs,
+ //    ALOGI("target=%p code=%d pid=%d uid=%d\n",
+ //         txn->target, txn->code, txn->sender_pid, txn->sender_euid);
+ 
+-    if (txn->target != svcmgr_handle)
++    if (txn->target != (uintptr_t) svcmgr_handle)
+         return -1;
+ 
+     // Equivalent to Parcel::enforceInterface(), reading the RPC
+diff --git a/include/binder/IPCThreadState.h b/include/binder/IPCThreadState.h
+index 5bc123e..dafcce3 100644
+--- a/include/binder/IPCThreadState.h
++++ b/include/binder/IPCThreadState.h
+@@ -107,7 +107,7 @@ private:
+     static  void                threadDestructor(void *st);
+     static  void                freeBuffer(Parcel* parcel,
+                                            const uint8_t* data, size_t dataSize,
+-                                           const size_t* objects, size_t objectsSize,
++                                           const uint64_t* objects, size_t objectsSize,
+                                            void* cookie);
+     
+     const   sp<ProcessState>    mProcess;
+diff --git a/include/binder/Parcel.h b/include/binder/Parcel.h
+index 98f20de..91b3f60 100644
+--- a/include/binder/Parcel.h
++++ b/include/binder/Parcel.h
+@@ -81,7 +81,7 @@ public:
+ 
+     void                freeData();
+ 
+-    const size_t*       objects() const;
++    const uint64_t*     objects() const;
+     size_t              objectsCount() const;
+     
+     status_t            errorCheck() const;
+@@ -95,6 +95,7 @@ public:
+     status_t            writeFloat(float val);
+     status_t            writeDouble(double val);
+     status_t            writeIntPtr(intptr_t val);
++    status_t            writePointer(uintptr_t val);
+     status_t            writeCString(const char* str);
+     status_t            writeString8(const String8& str);
+     status_t            writeString16(const String16& str);
+@@ -152,6 +153,7 @@ public:
+     double              readDouble() const;
+     status_t            readDouble(double *pArg) const;
+     intptr_t            readIntPtr() const;
++    uintptr_t           readPointer() const;
+     status_t            readIntPtr(intptr_t *pArg) const;
+ 
+     const char*         readCString() const;
+@@ -196,15 +198,15 @@ public:
+     
+     typedef void        (*release_func)(Parcel* parcel,
+                                         const uint8_t* data, size_t dataSize,
+-                                        const size_t* objects, size_t objectsSize,
++                                        const uint64_t* objects, size_t objectsSize,
+                                         void* cookie);
+                         
+     const uint8_t*      ipcData() const;
+     size_t              ipcDataSize() const;
+-    const size_t*       ipcObjects() const;
++    const uint64_t*     ipcObjects() const;
+     size_t              ipcObjectsCount() const;
+     void                ipcSetDataReference(const uint8_t* data, size_t dataSize,
+-                                            const size_t* objects, size_t objectsCount,
++                                            const uint64_t* objects, size_t objectsCount,
+                                             release_func relFunc, void* relCookie);
+     
+     void                print(TextOutput& to, uint32_t flags = 0) const;
+@@ -236,7 +238,8 @@ private:
+     size_t              mDataSize;
+     size_t              mDataCapacity;
+     mutable size_t      mDataPos;
+-    size_t*             mObjects;
++    // binder_size_t, the kernel reads these offsets as 64-bit
++    uint64_t*           mObjects;
+     size_t              mObjectsSize;
+     size_t              mObjectsCapacity;
+     mutable size_t      mNextObjectHint;
+diff --git a/libs/binder/IPCThreadState.cpp b/libs/binder/IPCThreadState.cpp
+index 5951a3f..4997d82 100644
+--- a/libs/binder/IPCThreadState.cpp
++++ b/libs/binder/IPCThreadState.cpp
+@@ -663,7 +663,7 @@ status_t IPCThreadState::requestDeathNotification(int32_t handle, BpBinder* prox
+ {
+     mOut.writeInt32(BC_REQUEST_DEATH_NOTIFICATION);
+     mOut.writeInt32((int32_t)handle);
+-    mOut.writeInt32((int32_t)proxy);
++    mOut.writePointer((uintptr_t)proxy);
+     return NO_ERROR;
+ }
+ 
+@@ -671,7 +671,7 @@ status_t IPCThreadState::clearDeathNotification(int32_t handle, BpBinder* proxy)
+ {
+     mOut.writeInt32(BC_CLEAR_DEATH_NOTIFICATION);
+     mOut.writeInt32((int32_t)handle);
+-    mOut.writeInt32((int32_t)proxy);
++    mOut.writePointer((uintptr_t)proxy);
+     return NO_ERROR;
+ }
+ 
+@@ -751,25 +751,25 @@ status_t IPCThreadState::waitForResponse(Parcel *reply, status_t *acquireResult)
+                 if (reply) {
+                     if ((tr.flags & TF_STATUS_CODE) == 0) {
+                         reply->ipcSetDataReference(
+-                            reinterpret_cast<const uint8_t*>(tr.data.ptr.buffer),
++                            reinterpret_cast<const uint8_t*>((uintptr_t)tr.data.ptr.buffer),
+                             tr.data_size,
+-                            reinterpret_cast<const size_t*>(tr.data.ptr.offsets),
+-                            tr.offsets_size/sizeof(size_t),
++                            reinterpret_cast<const binder_size_t*>((uintptr_t)tr.data.ptr.offsets),
++                            tr.offsets_size/sizeof(binder_size_t),
+                             freeBuffer, this);
+                     } else {
+-                        err = *static_cast<const status_t*>(tr.data.ptr.buffer);
++                        err = *reinterpret_cast<const status_t*>((uintptr_t)tr.data.ptr.buffer);
+                         freeBuffer(NULL,
+-                            reinterpret_cast<const uint8_t*>(tr.data.ptr.buffer),
++                            reinterpret_cast<const uint8_t*>((uintptr_t)tr.data.ptr.buffer),
+                             tr.data_size,
+-                            reinterpret_cast<const size_t*>(tr.data.ptr.offsets),
+-                            tr.offsets_size/sizeof(size_t), this);
++                            reinterpret_cast<const binder_size_t*>((uintptr_t)tr.data.ptr.offsets),
++                            tr.offsets_size/sizeof(binder_size_t), this);
+                     }
+                 } else {
+                     freeBuffer(NULL,
+-                        reinterpret_cast<const uint8_t*>(tr.data.ptr.buffer),
++                        reinterpret_cast<const uint8_t*>((uintptr_t)tr.data.ptr.buffer),
+                         tr.data_size,
+-                        reinterpret_cast<const size_t*>(tr.data.ptr.offsets),
+-                        tr.offsets_size/sizeof(size_t), this);
++                        reinterpret_cast<const binder_size_t*>((uintptr_t)tr.data.ptr.offsets),
++                        tr.offsets_size/sizeof(binder_size_t), this);
+                     continue;
+                 }
+             }
+@@ -809,12 +809,12 @@ status_t IPCThreadState::talkWithDriver(bool doReceive)
+     const size_t outAvail = (!doReceive || needRead) ? mOut.dataSize() : 0;
+     
+     bwr.write_size = outAvail;
+-    bwr.write_buffer = (long unsigned int)mOut.data();
++    bwr.write_buffer = (uintptr_t)mOut.data();
+ 
+     // This is what we'll read.
+     if (doReceive && needRead) {
+         bwr.read_size = mIn.dataCapacity();
+-        bwr.read_buffer = (long unsigned int)mIn.data();
++        bwr.read_buffer = (uintptr_t)mIn.data();
+     } else {
+         bwr.read_size = 0;
+         bwr.read_buffer = 0;
+@@ -824,7 +824,7 @@ status_t IPCThreadState::talkWithDriver(bool doReceive)
+         TextOutput::Bundle _b(alog);
+         if (outAvail != 0) {
+             alog << "Sending commands to driver: " << indent;
+-            const void* cmds = (const void*)bwr.write_buffer;
++            const void* cmds = (const void*)(uintptr_t)bwr.write_buffer;
+             const void* end = ((const uint8_t*)cmds)+bwr.write_size;
+             alog << HexDump(cmds, bwr.write_size) << endl;
+             while (cmds < end) cmds = printCommand(alog, cmds);
+@@ -868,7 +868,7 @@ status_t IPCThreadState::talkWithDriver(bool doReceive)
+ 
+     if (err >= NO_ERROR) {
+         if (bwr.write_consumed > 0) {
+-            if (bwr.write_consumed < (ssize_t)mOut.dataSize())
++            if (bwr.write_consumed < (binder_size_t)mOut.dataSize())
+                 mOut.remove(0, bwr.write_consumed);
+             else
+                 mOut.setDataSize(0);
+@@ -898,6 +898,7 @@ status_t IPCThreadState::writeTransactionData(int32_t cmd, uint32_t binderFlags,
+ {
+     binder_transaction_data tr;
+ 
++    tr.target.ptr = 0; // the union is 64-bit, don't leave the top half as junk
+     tr.target.handle = handle;
+     tr.code = code;
+     tr.flags = binderFlags;
+@@ -908,16 +909,16 @@ status_t IPCThreadState::writeTransactionData(int32_t cmd, uint32_t binderFlags,
+     const status_t err = data.errorCheck();
+     if (err == NO_ERROR) {
+         tr.data_size = data.ipcDataSize();
+-        tr.data.ptr.buffer = data.ipcData();
+-        tr.offsets_size = data.ipcObjectsCount()*sizeof(size_t);
+-        tr.data.ptr.offsets = data.ipcObjects();
++        tr.data.ptr.buffer = (uintptr_t)data.ipcData();
++        tr.offsets_size = data.ipcObjectsCount()*sizeof(binder_size_t);
++        tr.data.ptr.offsets = (uintptr_t)data.ipcObjects();
+     } else if (statusBuffer) {
+         tr.flags |= TF_STATUS_CODE;
+         *statusBuffer = err;
+         tr.data_size = sizeof(status_t);
+-        tr.data.ptr.buffer = statusBuffer;
++        tr.data.ptr.buffer = (uintptr_t)statusBuffer;
+         tr.offsets_size = 0;
+-        tr.data.ptr.offsets = NULL;
++        tr.data.ptr.offsets = 0;
+     } else {
+         return (mLastError = err);
+     }
+@@ -950,8 +951,8 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
+         break;
+         
+     case BR_ACQUIRE:
+-        refs = (RefBase::weakref_type*)mIn.readInt32();
+-        obj = (BBinder*)mIn.readInt32();
++        refs = (RefBase::weakref_type*)mIn.readPointer();
++        obj = (BBinder*)mIn.readPointer();
+         ALOG_ASSERT(refs->refBase() == obj,
+                    "BR_ACQUIRE: object %p does not match cookie %p (expected %p)",
+                    refs, obj, refs->refBase());
+@@ -961,13 +962,13 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
+             obj->printRefs();
+         }
+         mOut.writeInt32(BC_ACQUIRE_DONE);
+-        mOut.writeInt32((int32_t)refs);
+-        mOut.writeInt32((int32_t)obj);
++        mOut.writePointer((uintptr_t)refs);
++        mOut.writePointer((uintptr_t)obj);
+         break;
+         
+     case BR_RELEASE:
+-        refs = (RefBase::weakref_type*)mIn.readInt32();
+-        obj = (BBinder*)mIn.readInt32();
++        refs = (RefBase::weakref_type*)mIn.readPointer();
++        obj = (BBinder*)mIn.readPointer();
+         ALOG_ASSERT(refs->refBase() == obj,
+                    "BR_RELEASE: object %p does not match cookie %p (expected %p)",
+                    refs, obj, refs->refBase());
+@@ -979,17 +980,17 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
+         break;
+         
+     case BR_INCREFS:
+-        refs = (RefBase::weakref_type*)mIn.readInt32();
+-        obj = (BBinder*)mIn.readInt32();
++        refs = (RefBase::weakref_type*)mIn.readPointer();
++        obj = (BBinder*)mIn.readPointer();
+         refs->incWeak(mProcess.get());
+         mOut.writeInt32(BC_INCREFS_DONE);
+-        mOut.writeInt32((int32_t)refs);
+-        mOut.writeInt32((int32_t)obj);
++        mOut.writePointer((uintptr_t)refs);
++        mOut.writePointer((uintptr_t)obj);
+         break;
+         
+     case BR_DECREFS:
+-        refs = (RefBase::weakref_type*)mIn.readInt32();
+-        obj = (BBinder*)mIn.readInt32();
++        refs = (RefBase::weakref_type*)mIn.readPointer();
++        obj = (BBinder*)mIn.readPointer();
+         // NOTE: This assertion is not valid, because the object may no
+         // longer exist (thus the (BBinder*)cast above resulting in a different
+         // memory address).
+@@ -1000,8 +1001,8 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
+         break;
+         
+     case BR_ATTEMPT_ACQUIRE:
+-        refs = (RefBase::weakref_type*)mIn.readInt32();
+-        obj = (BBinder*)mIn.readInt32();
++        refs = (RefBase::weakref_type*)mIn.readPointer();
++        obj = (BBinder*)mIn.readPointer();
+          
+         {
+             const bool success = refs->attemptIncStrong(mProcess.get());
+@@ -1024,10 +1025,10 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
+             
+             Parcel buffer;
+             buffer.ipcSetDataReference(
+-                reinterpret_cast<const uint8_t*>(tr.data.ptr.buffer),
++                reinterpret_cast<const uint8_t*>((uintptr_t)tr.data.ptr.buffer),
+                 tr.data_size,
+-                reinterpret_cast<const size_t*>(tr.data.ptr.offsets),
+-                tr.offsets_size/sizeof(size_t), freeBuffer, this);
++                reinterpret_cast<const binder_size_t*>((uintptr_t)tr.data.ptr.offsets),
++                tr.offsets_size/sizeof(binder_size_t), freeBuffer, this);
+             
+             const pid_t origPid = mCallingPid;
+             const uid_t origUid = mCallingUid;
+@@ -1065,12 +1066,12 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
+                     << TypeCode(tr.code) << ": " << indent << buffer
+                     << dedent << endl
+                     << "Data addr = "
+-                    << reinterpret_cast<const uint8_t*>(tr.data.ptr.buffer)
++                    << reinterpret_cast<const uint8_t*>((uintptr_t)tr.data.ptr.buffer)
+                     << ", offsets addr="
+-                    << reinterpret_cast<const size_t*>(tr.data.ptr.offsets) << endl;
++                    << reinterpret_cast<const binder_size_t*>((uintptr_t)tr.data.ptr.offsets) << endl;
+             }
+             if (tr.target.ptr) {
+-                sp<BBinder> b((BBinder*)tr.cookie);
++                sp<BBinder> b((BBinder*)(uintptr_t)tr.cookie);
+                 const status_t error = b->transact(tr.code, buffer, &reply, tr.flags);
+                 if (error < NO_ERROR) reply.setError(error);
+ 
+@@ -1103,15 +1104,15 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
+     
+     case BR_DEAD_BINDER:
+         {
+-            BpBinder *proxy = (BpBinder*)mIn.readInt32();
++            BpBinder *proxy = (BpBinder*)mIn.readPointer();
+             proxy->sendObituary();
+             mOut.writeInt32(BC_DEAD_BINDER_DONE);
+-            mOut.writeInt32((int32_t)proxy);
++            mOut.writePointer((uintptr_t)proxy);
+         } break;
+         
+     case BR_CLEAR_DEATH_NOTIFICATION_DONE:
+         {
+-            BpBinder *proxy = (BpBinder*)mIn.readInt32();
++            BpBinder *proxy = (BpBinder*)mIn.readPointer();
+             proxy->getWeakRefs()->decWeak(proxy);
+         } break;
+         
+@@ -1155,7 +1156,7 @@ void IPCThreadState::threadDestructor(void *st)
+ 
+ 
+ void IPCThreadState::freeBuffer(Parcel* parcel, const uint8_t* data, size_t dataSize,
+-                                const size_t* objects, size_t objectsSize,
++                                const binder_size_t* objects, size_t objectsSize,
+                                 void* cookie)
+ {
+     //ALOGI("Freeing parcel %p", &parcel);
+@@ -1166,7 +1167,7 @@ void IPCThreadState::freeBuffer(Parcel* parcel, const uint8_t* data, size_t data
+     if (parcel != NULL) parcel->closeFileDescriptors();
+     IPCThreadState* state = self();
+     state->mOut.writeInt32(BC_FREE_BUFFER);
+-    state->mOut.writeInt32((int32_t)data);
++    state->mOut.writePointer((uintptr_t)data);
+ }
+ 
+ }; // namespace android
+diff --git a/libs/binder/Parcel.cpp b/libs/binder/Parcel.cpp
+index db9e0a1..93e0a23 100644
+--- a/libs/binder/Parcel.cpp
++++ b/libs/binder/Parcel.cpp
+@@ -71,19 +71,31 @@ struct small_flat_data
+ 
+ namespace android {
+ 
++// the kernel abi carries pointers as 64-bit ints even for 32-bit userspace
++template<typename T>
++static inline T* binder_to_ptr(binder_uintptr_t v)
++{
++    return reinterpret_cast<T*>(static_cast<uintptr_t>(v));
++}
++
++static inline binder_uintptr_t ptr_to_binder(const void* p)
++{
++    return static_cast<binder_uintptr_t>(reinterpret_cast<uintptr_t>(p));
++}
++
+ void acquire_object(const sp<ProcessState>& proc,
+     const flat_binder_object& obj, const void* who)
+ {
+     switch (obj.type) {
+         case BINDER_TYPE_BINDER:
+             if (obj.binder) {
+-                LOG_REFS("Parcel %p acquiring reference on local %p", who, obj.cookie);
+-                static_cast<IBinder*>(obj.cookie)->incStrong(who);
++                LOG_REFS("Parcel %p acquiring reference on local %llx", who, obj.cookie);
++                binder_to_ptr<IBinder>(obj.cookie)->incStrong(who);
+             }
+             return;
+         case BINDER_TYPE_WEAK_BINDER:
+             if (obj.binder)
+-                static_cast<RefBase::weakref_type*>(obj.binder)->incWeak(who);
++                binder_to_ptr<RefBase::weakref_type>(obj.binder)->incWeak(who);
+             return;
+         case BINDER_TYPE_HANDLE: {
+             const sp<IBinder> b = proc->getStrongProxyForHandle(obj.handle);
+@@ -105,7 +117,7 @@ void acquire_object(const sp<ProcessState>& proc,
+         }
+     }
+ 
+-    ALOGD("Invalid object type 0x%08lx", obj.type);
++    ALOGD("Invalid object type 0x%08x", obj.type);
+ }
+ 
+ void release_object(const sp<ProcessState>& proc,
+@@ -114,13 +126,13 @@ void release_object(const sp<ProcessState>& proc,
+     switch (obj.type) {
+         case BINDER_TYPE_BINDER:
+             if (obj.binder) {
+-                LOG_REFS("Parcel %p releasing reference on local %p", who, obj.cookie);
+-                static_cast<IBinder*>(obj.cookie)->decStrong(who);
++                LOG_REFS("Parcel %p releasing reference on local %llx", who, obj.cookie);
++                binder_to_ptr<IBinder>(obj.cookie)->decStrong(who);
+             }
+             return;
+         case BINDER_TYPE_WEAK_BINDER:
+             if (obj.binder)
+-                static_cast<RefBase::weakref_type*>(obj.binder)->decWeak(who);
++                binder_to_ptr<RefBase::weakref_type>(obj.binder)->decWeak(who);
+             return;
+         case BINDER_TYPE_HANDLE: {
+             const sp<IBinder> b = proc->getStrongProxyForHandle(obj.handle);
+@@ -136,12 +148,12 @@ void release_object(const sp<ProcessState>& proc,
+             return;
+         }
+         case BINDER_TYPE_FD: {
+-            if (obj.cookie != (void*)0) close(obj.handle);
++            if (obj.cookie != 0) close(obj.handle);
+             return;
+         }
+     }
+ 
+-    ALOGE("Invalid object type 0x%08lx", obj.type);
++    ALOGE("Invalid object type 0x%08x", obj.type);
+ }
+ 
+ inline static status_t finish_flatten_binder(
+@@ -166,16 +178,16 @@ status_t flatten_binder(const sp<ProcessState>& proc,
+             const int32_t handle = proxy ? proxy->handle() : 0;
+             obj.type = BINDER_TYPE_HANDLE;
+             obj.handle = handle;
+-            obj.cookie = NULL;
++            obj.cookie = 0;
+         } else {
+             obj.type = BINDER_TYPE_BINDER;
+-            obj.binder = local->getWeakRefs();
+-            obj.cookie = local;
++            obj.binder = ptr_to_binder(local->getWeakRefs());
++            obj.cookie = ptr_to_binder(local);
+         }
+     } else {
+         obj.type = BINDER_TYPE_BINDER;
+-        obj.binder = NULL;
+-        obj.cookie = NULL;
++        obj.binder = 0;
++        obj.cookie = 0;
+     }
+     
+     return finish_flatten_binder(binder, obj, out);
+@@ -199,11 +211,11 @@ status_t flatten_binder(const sp<ProcessState>& proc,
+                 const int32_t handle = proxy ? proxy->handle() : 0;
+                 obj.type = BINDER_TYPE_WEAK_HANDLE;
+                 obj.handle = handle;
+-                obj.cookie = NULL;
++                obj.cookie = 0;
+             } else {
+                 obj.type = BINDER_TYPE_WEAK_BINDER;
+-                obj.binder = binder.get_refs();
+-                obj.cookie = binder.unsafe_get();
++                obj.binder = ptr_to_binder(binder.get_refs());
++                obj.cookie = ptr_to_binder(binder.unsafe_get());
+             }
+             return finish_flatten_binder(real, obj, out);
+         }
+@@ -217,14 +229,14 @@ status_t flatten_binder(const sp<ProcessState>& proc,
+         // implementation we are using.
+         ALOGE("Unable to unflatten Binder weak reference!");
+         obj.type = BINDER_TYPE_BINDER;
+-        obj.binder = NULL;
+-        obj.cookie = NULL;
++        obj.binder = 0;
++        obj.cookie = 0;
+         return finish_flatten_binder(NULL, obj, out);
+     
+     } else {
+         obj.type = BINDER_TYPE_BINDER;
+-        obj.binder = NULL;
+-        obj.cookie = NULL;
++        obj.binder = 0;
++        obj.cookie = 0;
+         return finish_flatten_binder(NULL, obj, out);
+     }
+ }
+@@ -243,7 +255,7 @@ status_t unflatten_binder(const sp<ProcessState>& proc,
+     if (flat) {
+         switch (flat->type) {
+             case BINDER_TYPE_BINDER:
+-                *out = static_cast<IBinder*>(flat->cookie);
++                *out = binder_to_ptr<IBinder>(flat->cookie);
+                 return finish_unflatten_binder(NULL, *flat, in);
+             case BINDER_TYPE_HANDLE:
+                 *out = proc->getStrongProxyForHandle(flat->handle);
+@@ -262,13 +274,13 @@ status_t unflatten_binder(const sp<ProcessState>& proc,
+     if (flat) {
+         switch (flat->type) {
+             case BINDER_TYPE_BINDER:
+-                *out = static_cast<IBinder*>(flat->cookie);
++                *out = binder_to_ptr<IBinder>(flat->cookie);
+                 return finish_unflatten_binder(NULL, *flat, in);
+             case BINDER_TYPE_WEAK_BINDER:
+-                if (flat->binder != NULL) {
++                if (flat->binder != 0) {
+                     out->set_object_and_refs(
+-                        static_cast<IBinder*>(flat->cookie),
+-                        static_cast<RefBase::weakref_type*>(flat->binder));
++                        binder_to_ptr<IBinder>(flat->cookie),
++                        binder_to_ptr<RefBase::weakref_type>(flat->binder));
+                 } else {
+                     *out = NULL;
+                 }
+@@ -365,7 +377,7 @@ status_t Parcel::appendFrom(const Parcel *parcel, size_t offset, size_t len)
+     const sp<ProcessState> proc(ProcessState::self());
+     status_t err;
+     const uint8_t *data = parcel->mData;
+-    const size_t *objects = parcel->mObjects;
++    const binder_size_t *objects = parcel->mObjects;
+     size_t size = parcel->mObjectsSize;
+     int startPos = mDataPos;
+     int firstIndex = -1, lastIndex = -2;
+@@ -412,9 +424,9 @@ status_t Parcel::appendFrom(const Parcel *parcel, size_t offset, size_t len)
+         // grow objects
+         if (mObjectsCapacity < mObjectsSize + numObjects) {
+             int newSize = ((mObjectsSize + numObjects)*3)/2;
+-            size_t *objects =
+-                (size_t*)realloc(mObjects, newSize*sizeof(size_t));
+-            if (objects == (size_t*)0) {
++            binder_size_t *objects =
++                (binder_size_t*)realloc(mObjects, newSize*sizeof(binder_size_t));
++            if (objects == (binder_size_t*)0) {
+                 return NO_MEMORY;
+             }
+             mObjects = objects;
+@@ -437,7 +449,7 @@ status_t Parcel::appendFrom(const Parcel *parcel, size_t offset, size_t len)
+                 // new Parcel now owns its own fd, and can declare that we
+                 // officially know we have fds.
+                 flat->handle = dup(flat->handle);
+-                flat->cookie = (void*)1;
++                flat->cookie = 1;
+                 mHasFds = mFdsKnown = true;
+                 if (!mAllowFds) {
+                     err = FDS_NOT_ALLOWED;
+@@ -512,7 +524,7 @@ bool Parcel::enforceInterface(const String16& interface,
+     }
+ }
+ 
+-const size_t* Parcel::objects() const
++const binder_size_t* Parcel::objects() const
+ {
+     return mObjects;
+ }
+@@ -670,6 +682,11 @@ status_t Parcel::writeDouble(double val)
+ 
+ #endif
+ 
++status_t Parcel::writePointer(uintptr_t val)
++{
++    return writeAligned<binder_uintptr_t>(val);
++}
++
+ status_t Parcel::writeIntPtr(intptr_t val)
+ {
+     return writeAligned(val);
+@@ -754,7 +771,7 @@ status_t Parcel::writeFileDescriptor(int fd, bool takeOwnership)
+     obj.type = BINDER_TYPE_FD;
+     obj.flags = 0x7f | FLAT_BINDER_FLAG_ACCEPTS_FDS;
+     obj.handle = fd;
+-    obj.cookie = (void*) (takeOwnership ? 1 : 0);
++    obj.cookie = takeOwnership ? 1 : 0;
+     return writeObject(obj, true);
+ }
+ 
+@@ -864,7 +881,7 @@ restart_write:
+         *reinterpret_cast<flat_binder_object*>(mData+mDataPos) = val;
+         
+         // Need to write meta-data?
+-        if (nullMetaData || val.binder != NULL) {
++        if (nullMetaData || val.binder != 0) {
+             mObjects[mObjectsSize] = mDataPos;
+             acquire_object(ProcessState::self(), val, this);
+             mObjectsSize++;
+@@ -887,7 +904,7 @@ restart_write:
+     }
+     if (!enoughObjects) {
+         size_t newSize = ((mObjectsSize+2)*3)/2;
+-        size_t* objects = (size_t*)realloc(mObjects, newSize*sizeof(size_t));
++        binder_size_t* objects = (binder_size_t*)realloc(mObjects, newSize*sizeof(binder_size_t));
+         if (objects == NULL) return NO_MEMORY;
+         mObjects = objects;
+         mObjectsCapacity = newSize;
+@@ -1046,6 +1063,11 @@ status_t Parcel::readIntPtr(intptr_t *pArg) const
+ }
+ 
+ 
++uintptr_t Parcel::readPointer() const
++{
++    return static_cast<uintptr_t>(readAligned<binder_uintptr_t>());
++}
++
+ intptr_t Parcel::readIntPtr() const
+ {
+     return readAligned<intptr_t>();
+@@ -1236,7 +1258,7 @@ const flat_binder_object* Parcel::readObject(bool nullMetaData) const
+         const flat_binder_object* obj
+                 = reinterpret_cast<const flat_binder_object*>(mData+DPOS);
+         mDataPos = DPOS + sizeof(flat_binder_object);
+-        if (!nullMetaData && (obj->cookie == NULL && obj->binder == NULL)) {
++        if (!nullMetaData && (obj->cookie == 0 && obj->binder == 0)) {
+             // When transferring a NULL object, we don't write it into
+             // the object list, so we don't want to check for it when
+             // reading.
+@@ -1245,7 +1267,7 @@ const flat_binder_object* Parcel::readObject(bool nullMetaData) const
+         }
+         
+         // Ensure that this object is valid...
+-        size_t* const OBJS = mObjects;
++        binder_size_t* const OBJS = mObjects;
+         const size_t N = mObjectsSize;
+         size_t opos = mNextObjectHint;
+         
+@@ -1317,7 +1339,7 @@ size_t Parcel::ipcDataSize() const
+     return (mDataSize > mDataPos ? mDataSize : mDataPos);
+ }
+ 
+-const size_t* Parcel::ipcObjects() const
++const binder_size_t* Parcel::ipcObjects() const
+ {
+     return mObjects;
+ }
+@@ -1328,7 +1350,7 @@ size_t Parcel::ipcObjectsCount() const
+ }
+ 
+ void Parcel::ipcSetDataReference(const uint8_t* data, size_t dataSize,
+-    const size_t* objects, size_t objectsCount, release_func relFunc, void* relCookie)
++    const binder_size_t* objects, size_t objectsCount, release_func relFunc, void* relCookie)
+ {
+     size_t minOffset = 0;
+     freeDataNoInit();
+@@ -1338,7 +1360,7 @@ void Parcel::ipcSetDataReference(const uint8_t* data, size_t dataSize,
+     //ALOGI("setDataReference Setting data size of %p to %lu (pid=%d)\n", this, mDataSize, getpid());
+     mDataPos = 0;
+     ALOGV("setDataReference Setting data pos of %p to %d\n", this, mDataPos);
+-    mObjects = const_cast<size_t*>(objects);
++    mObjects = const_cast<binder_size_t*>(objects);
+     mObjectsSize = mObjectsCapacity = objectsCount;
+     mNextObjectHint = 0;
+     mOwner = relFunc;
+@@ -1366,14 +1388,14 @@ void Parcel::print(TextOutput& to, uint32_t flags) const
+     } else if (dataSize() > 0) {
+         const uint8_t* DATA = data();
+         to << indent << HexDump(DATA, dataSize()) << dedent;
+-        const size_t* OBJS = objects();
++        const binder_size_t* OBJS = objects();
+         const size_t N = objectsCount();
+         for (size_t i=0; i<N; i++) {
+             const flat_binder_object* flat
+                 = reinterpret_cast<const flat_binder_object*>(DATA+OBJS[i]);
+-            to << endl << "Object #" << i << " @ " << (void*)OBJS[i] << ": "
++            to << endl << "Object #" << i << " @ " << (void*)(size_t)OBJS[i] << ": "
+                 << TypeCode(flat->type & 0x7f7f7f00)
+-                << " = " << flat->binder;
++                << " = " << binder_to_ptr<void>(flat->binder);
+         }
+     } else {
+         to << "NULL";
+@@ -1387,7 +1409,7 @@ void Parcel::releaseObjects()
+     const sp<ProcessState> proc(ProcessState::self());
+     size_t i = mObjectsSize;
+     uint8_t* const data = mData;
+-    size_t* const objects = mObjects;
++    binder_size_t* const objects = mObjects;
+     while (i > 0) {
+         i--;
+         const flat_binder_object* flat
+@@ -1401,7 +1423,7 @@ void Parcel::acquireObjects()
+     const sp<ProcessState> proc(ProcessState::self());
+     size_t i = mObjectsSize;
+     uint8_t* const data = mData;
+-    size_t* const objects = mObjects;
++    binder_size_t* const objects = mObjects;
+     while (i > 0) {
+         i--;
+         const flat_binder_object* flat
+@@ -1502,10 +1524,10 @@ status_t Parcel::continueWrite(size_t desired)
+             mError = NO_MEMORY;
+             return NO_MEMORY;
+         }
+-        size_t* objects = NULL;
++        binder_size_t* objects = NULL;
+         
+         if (objectsSize) {
+-            objects = (size_t*)malloc(objectsSize*sizeof(size_t));
++            objects = (binder_size_t*)malloc(objectsSize*sizeof(binder_size_t));
+             if (!objects) {
+                 free(data);
+ 
+@@ -1525,7 +1547,7 @@ status_t Parcel::continueWrite(size_t desired)
+             memcpy(data, mData, mDataSize < desired ? mDataSize : desired);
+         }
+         if (objects && mObjects) {
+-            memcpy(objects, mObjects, objectsSize*sizeof(size_t));
++            memcpy(objects, mObjects, objectsSize*sizeof(binder_size_t));
+         }
+         //ALOGI("Freeing data ref of %p (pid=%d)\n", this, getpid());
+         mOwner(this, mData, mDataSize, mObjects, mObjectsSize, mOwnerCookie);
+@@ -1552,8 +1574,8 @@ status_t Parcel::continueWrite(size_t desired)
+                 }
+                 release_object(proc, *flat, this);
+             }
+-            size_t* objects =
+-                (size_t*)realloc(mObjects, objectsSize*sizeof(size_t));
++            binder_size_t* objects =
++                (binder_size_t*)realloc(mObjects, objectsSize*sizeof(binder_size_t));
+             if (objects) {
+                 mObjects = objects;
+             }
+diff --git a/opengl/libs/EGL/Loader.cpp b/opengl/libs/EGL/Loader.cpp
+index 02914a0..4d69909 100644
+--- a/opengl/libs/EGL/Loader.cpp
++++ b/opengl/libs/EGL/Loader.cpp
+@@ -25,6 +25,9 @@
+ 
+ #include <cutils/log.h>
+ #include <cutils/properties.h>
++#include <cutils/sockets.h>
++#include <pthread.h>
++#include <unistd.h>
+ 
+ #include <EGL/egl.h>
+ 
+@@ -63,37 +66,38 @@ namespace android {
+ 
+ ANDROID_SINGLETON_STATIC_INSTANCE( Loader )
+ 
+-/* This function is called to check whether we run inside the emulator,
+- * and if this is the case whether GLES GPU emulation is supported.
+- *
+- * Returned values are:
+- *  -1   -> not running inside the emulator
+- *   0   -> running inside the emulator, but GPU emulation not supported
+- *   1   -> running inside the emulator, GPU emulation is supported
+- *          through the "emulation" config.
+- */
++// glrenderd (adreno in a lineage chroot) or nothing. the chroot only ships when it was staged,
++// and surfaceflinger can beat glrenderd to its socket, so wait a little before giving up.
++// gralloc.maple's RenderdStream::available() makes the same call so the two never disagree
++static const char kRenderdSocket[] = "glrenderd";
++static const char kRenderdBinary[] = "/system/glr/root/glrenderd";
++static const int kRenderdWaitTries = 50;
++static const useconds_t kRenderdWaitStepUs = 100000;
++
++static int s_renderdStatus;
++static pthread_once_t s_renderdOnce = PTHREAD_ONCE_INIT;
++
++static void probeRenderd()
++{
++    if (access(kRenderdBinary, F_OK))
++        return;
++    for (int i = 0; i < kRenderdWaitTries; i++) {
++        int fd = socket_local_client(kRenderdSocket, ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
++        if (fd >= 0) {
++            close(fd);
++            s_renderdStatus = 1;
++            return;
++        }
++        usleep(kRenderdWaitStepUs);
++    }
++}
++
++/* the emulator's answer, 1 picks the emulation libs and 0 the software renderer */
+ static int
+ checkGlesEmulationStatus(void)
+ {
+-    /* We're going to check for the following kernel parameters:
+-     *
+-     *    qemu=1                      -> tells us that we run inside the emulator
+-     *    android.qemu.gles=<number>  -> tells us the GLES GPU emulation status
+-     *
+-     * Note that we will return <number> if we find it. This let us support
+-     * more additionnal emulation modes in the future.
+-     */
+-    char  prop[PROPERTY_VALUE_MAX];
+-    int   result = -1;
+-
+-    /* First, check for qemu=1 */
+-    property_get("ro.kernel.qemu",prop,"0");
+-    if (atoi(prop) != 1)
+-        return -1;
+-
+-    /* We are in the emulator, get GPU status value */
+-    property_get("ro.kernel.qemu.gles",prop,"0");
+-    return atoi(prop);
++    pthread_once(&s_renderdOnce, probeRenderd);
++    return s_renderdStatus;
+ }
+ 
+ // ----------------------------------------------------------------------------

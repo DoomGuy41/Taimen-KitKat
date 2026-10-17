@@ -1,0 +1,250 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Fri, 16 Oct 2026 20:16:09 +0000
+Subject: [PATCH 4/5] Time and alarms without /dev/alarm (timerfd,
+ settimeofday, CAP_WAKE_ALARM)
+
+Framework part: AlarmManagerService uses timerfd (CLOCK_*_ALARM), SystemClock.setCurrentTimeMillis
+uses settimeofday. The PM8998 RTC refuses writes, so the offset between wall time and the RTC
+is saved and re-applied at boot by init.taimen.rc (rtc-restore).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../com/android/internal/os/ZygoteInit.java   |   3 +-
+ core/jni/android_os_SystemClock.cpp           |  28 +++-
+ ...com_android_server_AlarmManagerService.cpp | 136 +++++++++++++++---
+ 3 files changed, 144 insertions(+), 23 deletions(-)
+
+diff --git a/core/java/com/android/internal/os/ZygoteInit.java b/core/java/com/android/internal/os/ZygoteInit.java
+index 1548f1b0..83e3b598 100644
+--- a/core/java/com/android/internal/os/ZygoteInit.java
++++ b/core/java/com/android/internal/os/ZygoteInit.java
+@@ -504,7 +504,8 @@ public class ZygoteInit {
+             OsConstants.CAP_SYS_NICE,
+             OsConstants.CAP_SYS_RESOURCE,
+             OsConstants.CAP_SYS_TIME,
+-            OsConstants.CAP_SYS_TTY_CONFIG
++            OsConstants.CAP_SYS_TTY_CONFIG,
++            OsConstants.CAP_WAKE_ALARM  /* Pixel 2 XL: *_ALARM timerfds of AlarmManagerService */
+         );
+         /* Hardcoded command line to start the system server */
+         String args[] = {
+diff --git a/core/jni/android_os_SystemClock.cpp b/core/jni/android_os_SystemClock.cpp
+index d20b8005..cb9eceec 100644
+--- a/core/jni/android_os_SystemClock.cpp
++++ b/core/jni/android_os_SystemClock.cpp
+@@ -38,6 +38,8 @@
+ 
+ #include <sys/time.h>
+ #include <time.h>
++#include <sys/stat.h>
++#include <stdio.h>
+ 
+ #include <utils/SystemClock.h>
+ 
+@@ -65,8 +67,30 @@ static int setCurrentTimeMillis(int64_t millis)
+ 
+     fd = open("/dev/alarm", O_RDWR);
+     if(fd < 0) {
+-        ALOGW("Unable to open alarm driver: %s\n", strerror(errno));
+-        return -1;
++        // Pixel 2 XL: no /dev/alarm on the 4.4 kernel; settimeofday (CAP_SYS_TIME of
++        // system_server). The PM8998 RTC refuses writes: the offset between wall time and
++        // the RTC is saved, and init.taimen.rc applies it again at boot.
++        if (settimeofday(&tv, NULL) < 0) {
++            ALOGW("Unable to set time of day to %ld: %s\n", tv.tv_sec, strerror(errno));
++            return -1;
++        }
++        long long rtc = -1;
++        FILE *f = fopen("/sys/class/rtc/rtc0/since_epoch", "r");
++        if (f) {
++            if (fscanf(f, "%lld", &rtc) != 1)
++                rtc = -1;
++            fclose(f);
++        }
++        if (rtc >= 0) {
++            mkdir("/data/system/time", 0770);
++            f = fopen("/data/system/time/rtc_offset.tmp", "w");
++            if (f) {
++                fprintf(f, "%lld\n", (long long)tv.tv_sec - rtc);
++                fclose(f);
++                rename("/data/system/time/rtc_offset.tmp", "/data/system/time/rtc_offset");
++            }
++        }
++        return 0;
+     }
+     ts.tv_sec = tv.tv_sec;
+     ts.tv_nsec = tv.tv_usec * 1000;
+diff --git a/services/jni/com_android_server_AlarmManagerService.cpp b/services/jni/com_android_server_AlarmManagerService.cpp
+index c2f61518..3e7afd61 100644
+--- a/services/jni/com_android_server_AlarmManagerService.cpp
++++ b/services/jni/com_android_server_AlarmManagerService.cpp
+@@ -33,7 +33,10 @@
+ #include <errno.h>
+ #include <unistd.h>
+ #include <linux/ioctl.h>
+-#include <linux/android_alarm.h>
++#include <sys/epoll.h>
++#include <sys/timerfd.h>
++#include <time.h>
++#include <stdint.h>
+ 
+ namespace android {
+ 
+@@ -55,44 +58,137 @@ static jint android_server_AlarmManagerService_setKernelTimezone(JNIEnv* env, jo
+     return 0;
+ }
+ 
++// Pixel 2 XL: the 4.4 kernel no longer has the /dev/alarm driver. Alarms use one timerfd per
++// type (*_ALARM clocks for the "wakeup" types, which wake the phone from suspend), gathered
++// in an epoll, like Lollipop's AlarmManagerService. The Java interface is unchanged:
++// init() returns the epoll descriptor, waitForAlarm() the mask of expired types, with bit 16
++// set when the wall time was changed (timerfd armed with TFD_TIMER_CANCEL_ON_SET).
++#ifndef CLOCK_BOOTTIME
++#define CLOCK_BOOTTIME 7
++#endif
++#ifndef CLOCK_REALTIME_ALARM
++#define CLOCK_REALTIME_ALARM 8
++#endif
++#ifndef CLOCK_BOOTTIME_ALARM
++#define CLOCK_BOOTTIME_ALARM 9
++#endif
++#ifndef TFD_TIMER_CANCEL_ON_SET
++#define TFD_TIMER_CANCEL_ON_SET (1 << 1)
++#endif
++
++// RTC_WAKEUP, RTC, ELAPSED_REALTIME_WAKEUP, ELAPSED_REALTIME
++static const clockid_t kAlarmClocks[] = {
++    CLOCK_REALTIME_ALARM, CLOCK_REALTIME, CLOCK_BOOTTIME_ALARM, CLOCK_BOOTTIME,
++};
++static const int kNumAlarms = sizeof(kAlarmClocks) / sizeof(kAlarmClocks[0]);
++static const int kTimeChangeBit = 16;
++static int sTimerFds[kNumAlarms + 1] = { -1, -1, -1, -1, -1 };  // last one: time change
++
++static int armTimeChangeTimer()
++{
++    // Far deadline on CLOCK_REALTIME: only the cancellation (ECANCELED) matters
++    struct itimerspec spec;
++    memset(&spec, 0, sizeof(spec));
++    spec.it_value.tv_sec = 0x7fffffff;
++    return timerfd_settime(sTimerFds[kNumAlarms], TFD_TIMER_ABSTIME | TFD_TIMER_CANCEL_ON_SET,
++                           &spec, NULL);
++}
++
+ static jint android_server_AlarmManagerService_init(JNIEnv* env, jobject obj)
+ {
+-    return open("/dev/alarm", O_RDWR);
++    int epollfd = epoll_create(kNumAlarms + 1);
++    if (epollfd < 0) {
++        ALOGE("epoll_create: %s", strerror(errno));
++        return -1;
++    }
++    for (int i = 0; i <= kNumAlarms; i++) {
++        clockid_t clock = i < kNumAlarms ? kAlarmClocks[i] : CLOCK_REALTIME;
++        int fd = timerfd_create(clock, 0);
++        if (fd < 0 && i < kNumAlarms && (clock == CLOCK_REALTIME_ALARM || clock == CLOCK_BOOTTIME_ALARM)) {
++            // without CAP_WAKE_ALARM: non-wakeup alarms rather than no alarms at all
++            ALOGE("timerfd_create(%d): %s, falling back to non-wakeup", clock, strerror(errno));
++            fd = timerfd_create(clock == CLOCK_REALTIME_ALARM ? CLOCK_REALTIME : CLOCK_BOOTTIME, 0);
++        }
++        if (fd < 0) {
++            ALOGE("timerfd_create(%d): %s", clock, strerror(errno));
++            for (int j = 0; j < i; j++)
++                close(sTimerFds[j]);
++            close(epollfd);
++            return -1;
++        }
++        sTimerFds[i] = fd;
++        struct epoll_event event;
++        memset(&event, 0, sizeof(event));
++        event.events = EPOLLIN | EPOLLWAKEUP;
++        event.data.u32 = i;
++        if (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event) < 0) {
++            // EPOLLWAKEUP needs CAP_BLOCK_SUSPEND: retry without it
++            event.events = EPOLLIN;
++            if (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event) < 0)
++                ALOGE("epoll_ctl: %s", strerror(errno));
++        }
++    }
++    if (armTimeChangeTimer() < 0)
++        ALOGE("time change timerfd: %s", strerror(errno));
++    return epollfd;
+ }
+ 
+ static void android_server_AlarmManagerService_close(JNIEnv* env, jobject obj, jint fd)
+ {
+-	close(fd);
++    for (int i = 0; i <= kNumAlarms; i++) {
++        if (sTimerFds[i] >= 0)
++            close(sTimerFds[i]);
++        sTimerFds[i] = -1;
++    }
++    close(fd);
+ }
+ 
+ static void android_server_AlarmManagerService_set(JNIEnv* env, jobject obj, jint fd, jint type, jlong seconds, jlong nanoseconds)
+ {
+-    struct timespec ts;
+-    ts.tv_sec = seconds;
+-    ts.tv_nsec = nanoseconds;
+-
+-	int result = ioctl(fd, ANDROID_ALARM_SET(type), &ts);
+-	if (result < 0)
+-	{
++    if (type < 0 || type >= kNumAlarms)
++        return;
++    struct itimerspec spec;
++    memset(&spec, 0, sizeof(spec));
++    spec.it_value.tv_sec = seconds;
++    spec.it_value.tv_nsec = nanoseconds;
++    // a zero deadline would disarm the timerfd: bring it to 1 ns
++    if (spec.it_value.tv_sec == 0 && spec.it_value.tv_nsec == 0)
++        spec.it_value.tv_nsec = 1;
++    if (timerfd_settime(sTimerFds[type], TFD_TIMER_ABSTIME, &spec, NULL) < 0)
+         ALOGE("Unable to set alarm to %lld.%09lld: %s\n", seconds, nanoseconds, strerror(errno));
+-    }
+ }
+ 
+ static jint android_server_AlarmManagerService_waitForAlarm(JNIEnv* env, jobject obj, jint fd)
+ {
+-	int result = 0;
+-
+-	do
+-	{
+-		result = ioctl(fd, ANDROID_ALARM_WAIT);
+-	} while (result < 0 && errno == EINTR);
+-
+-	if (result < 0)
+-	{
++    struct epoll_event events[kNumAlarms + 1];
++    int n;
++    do {
++        n = epoll_wait(fd, events, kNumAlarms + 1, -1);
++    } while (n < 0 && errno == EINTR);
++    if (n < 0) {
+         ALOGE("Unable to wait on alarm: %s\n", strerror(errno));
+         return 0;
+     }
+ 
++    int result = 0;
++    for (int i = 0; i < n; i++) {
++        int alarm = events[i].data.u32;
++        uint64_t expirations;
++        ssize_t r = read(sTimerFds[alarm], &expirations, sizeof(expirations));
++        if (alarm == kNumAlarms) {
++            if (r < 0 && errno == ECANCELED) {
++                result |= 1 << kTimeChangeBit;
++                armTimeChangeTimer();
++            }
++            continue;
++        }
++        if (r < 0 && errno == ECANCELED) {
++            result |= 1 << kTimeChangeBit;
++            continue;
++        }
++        if (r == sizeof(expirations))
++            result |= 1 << alarm;
++    }
+     return result;
+ }
+ 

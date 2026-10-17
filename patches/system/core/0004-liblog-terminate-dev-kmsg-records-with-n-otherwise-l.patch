@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Thu, 15 Oct 2026 18:41:07 +0000
+Subject: [PATCH 4/8] liblog: terminate /dev/kmsg records with \n (otherwise
+ lines merge)
+
+---
+ liblog/logd_write.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/liblog/logd_write.c b/liblog/logd_write.c
+index 675bd01..deb5570 100644
+--- a/liblog/logd_write.c
++++ b/liblog/logd_write.c
+@@ -68,8 +68,12 @@ static int __write_to_log_kmsg(log_id_t log_id, struct iovec *vec, size_t nr)
+         return -1;
+     if (n >= (int)sizeof(buf))
+         n = sizeof(buf) - 1;
+-    if (buf[n - 1] == '\n')
+-        n--;
++    /* always end with \n: otherwise the kernel appends the next message (LOG_CONT) */
++    if (buf[n - 1] != '\n') {
++        if (n >= (int)sizeof(buf) - 1)
++            n = sizeof(buf) - 2;
++        buf[n++] = '\n';
++    }
+     return write(kmsg_fd, buf, n);
+ }
+ 

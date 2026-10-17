@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Thu, 15 Oct 2026 20:36:26 +0000
+Subject: [PATCH 3/5] hwui: cap the reported GL version at 2.0
+
+Added while GL went through the emulator GLES 2 encoder (bring-up). Kept with the native
+Adreno driver: the released build is tested with ES 2.0 behaviour in hwui.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ libs/hwui/Extensions.cpp | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/libs/hwui/Extensions.cpp b/libs/hwui/Extensions.cpp
+index 84e7e650..94a5d701 100644
+--- a/libs/hwui/Extensions.cpp
++++ b/libs/hwui/Extensions.cpp
+@@ -91,6 +91,11 @@ Extensions::Extensions(): Singleton<Extensions>() {
+         mVersionMajor = 2;
+         mVersionMinor = 0;
+     }
++    // Pixel 2 XL: cap at ES 2.0 (added when GL went through the GLES2-only emulator encoder; kept)
++    if (mVersionMajor > 2) {
++        mVersionMajor = 2;
++        mVersionMinor = 0;
++    }
+ }
+ 
+ Extensions::~Extensions() {

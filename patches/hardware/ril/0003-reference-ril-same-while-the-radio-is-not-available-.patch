@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Fri, 16 Oct 2026 17:39:46 +0000
+Subject: [PATCH 3/4] reference-ril: same while the radio is not available yet
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ reference-ril/reference-ril.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/reference-ril/reference-ril.c b/reference-ril/reference-ril.c
+index 7031cf5..24666c8 100644
+--- a/reference-ril/reference-ril.c
++++ b/reference-ril/reference-ril.c
+@@ -2527,11 +2527,7 @@ getSIMStatus()
+     char *cpinResult;
+ 
+     RLOGD("getSIMStatus(). sState: %d",sState);
+-    if (sState == RADIO_STATE_UNAVAILABLE) {
+-        ret = SIM_NOT_READY;
+-        goto done;
+-    }
+-    if (sState == RADIO_STATE_OFF) {
++    if (sState == RADIO_STATE_OFF || sState == RADIO_STATE_UNAVAILABLE) {
+         /* Pixel 2 XL: the Qualcomm modem answers +CPIN with the radio off. Reporting an absent
+          * SIM right away avoids going "present" then "removed" (dialog at boot) */
+         err = at_send_command_singleline("AT+CPIN?", "+CPIN:", &p_response);

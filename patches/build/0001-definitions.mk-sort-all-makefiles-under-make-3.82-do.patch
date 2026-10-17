@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 20:28:30 +0000
+Subject: [PATCH 1/2] definitions.mk: sort all-makefiles-under (make 3.82 does
+ not sort $(wildcard))
+
+---
+ core/definitions.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/core/definitions.mk b/core/definitions.mk
+index b35a6c3..3f02a06 100644
+--- a/core/definitions.mk
++++ b/core/definitions.mk
+@@ -136,7 +136,7 @@ endef
+ ###########################################################
+ 
+ define all-makefiles-under
+-$(wildcard $(1)/*/Android.mk)
++$(sort $(wildcard $(1)/*/Android.mk))
+ endef
+ 
+ ###########################################################

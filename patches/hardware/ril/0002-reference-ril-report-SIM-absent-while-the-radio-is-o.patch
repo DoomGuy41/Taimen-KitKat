@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Fri, 16 Oct 2026 17:36:05 +0000
+Subject: [PATCH 2/4] reference-ril: report SIM absent while the radio is off
+ (no "SIM removed" at boot)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ reference-ril/reference-ril.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/reference-ril/reference-ril.c b/reference-ril/reference-ril.c
+index f148b76..7031cf5 100644
+--- a/reference-ril/reference-ril.c
++++ b/reference-ril/reference-ril.c
+@@ -2527,10 +2527,18 @@ getSIMStatus()
+     char *cpinResult;
+ 
+     RLOGD("getSIMStatus(). sState: %d",sState);
+-    if (sState == RADIO_STATE_OFF || sState == RADIO_STATE_UNAVAILABLE) {
++    if (sState == RADIO_STATE_UNAVAILABLE) {
+         ret = SIM_NOT_READY;
+         goto done;
+     }
++    if (sState == RADIO_STATE_OFF) {
++        /* Pixel 2 XL: the Qualcomm modem answers +CPIN with the radio off. Reporting an absent
++         * SIM right away avoids going "present" then "removed" (dialog at boot) */
++        err = at_send_command_singleline("AT+CPIN?", "+CPIN:", &p_response);
++        ret = (err == 0 && at_get_cme_error(p_response) == CME_SIM_NOT_INSERTED)
++                ? SIM_ABSENT : SIM_NOT_READY;
++        goto done;
++    }
+ 
+     err = at_send_command_singleline("AT+CPIN?", "+CPIN:", &p_response);
+ 

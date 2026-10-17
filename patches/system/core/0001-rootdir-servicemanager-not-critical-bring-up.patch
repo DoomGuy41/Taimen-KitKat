@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 20:27:41 +0000
+Subject: [PATCH 1/8] rootdir: servicemanager not critical (bring-up)
+
+---
+ rootdir/init.rc | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/rootdir/init.rc b/rootdir/init.rc
+index 1ee9fbf..4cf2a65 100644
+--- a/rootdir/init.rc
++++ b/rootdir/init.rc
+@@ -460,7 +460,6 @@ service servicemanager /system/bin/servicemanager
+     class core
+     user system
+     group system
+-    critical
+     onrestart restart healthd
+     onrestart restart zygote
+     onrestart restart media

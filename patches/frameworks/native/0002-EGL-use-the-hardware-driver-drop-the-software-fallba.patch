@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Fri, 16 Oct 2026 23:05:47 +0000
+Subject: [PATCH 2/3] EGL: use the hardware driver (drop the software fallback
+ used during bring-up)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ opengl/libs/EGL/Loader.cpp | 37 ++++++++-----------------------------
+ 1 file changed, 8 insertions(+), 29 deletions(-)
+
+diff --git a/opengl/libs/EGL/Loader.cpp b/opengl/libs/EGL/Loader.cpp
+index 4d69909..b714c8e 100644
+--- a/opengl/libs/EGL/Loader.cpp
++++ b/opengl/libs/EGL/Loader.cpp
+@@ -66,38 +66,17 @@ namespace android {
+ 
+ ANDROID_SINGLETON_STATIC_INSTANCE( Loader )
+ 
+-// glrenderd (adreno in a lineage chroot) or nothing. the chroot only ships when it was staged,
+-// and surfaceflinger can beat glrenderd to its socket, so wait a little before giving up.
+-// gralloc.maple's RenderdStream::available() makes the same call so the two never disagree
+-static const char kRenderdSocket[] = "glrenderd";
+-static const char kRenderdBinary[] = "/system/glr/root/glrenderd";
+-static const int kRenderdWaitTries = 50;
+-static const useconds_t kRenderdWaitStepUs = 100000;
+-
+-static int s_renderdStatus;
+-static pthread_once_t s_renderdOnce = PTHREAD_ONCE_INIT;
+-
+-static void probeRenderd()
+-{
+-    if (access(kRenderdBinary, F_OK))
+-        return;
+-    for (int i = 0; i < kRenderdWaitTries; i++) {
+-        int fd = socket_local_client(kRenderdSocket, ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
+-        if (fd >= 0) {
+-            close(fd);
+-            s_renderdStatus = 1;
+-            return;
+-        }
+-        usleep(kRenderdWaitStepUs);
+-    }
+-}
+-
+-/* the emulator's answer, 1 picks the emulation libs and 0 the software renderer */
++/* Pixel 2 XL: native Adreno driver (libhyb). Stock KitKat logic: only the emulator
++ * (ro.kernel.qemu=1) picks GLES emulation (1) or software rendering (0); -1 = hardware. */
+ static int
+ checkGlesEmulationStatus(void)
+ {
+-    pthread_once(&s_renderdOnce, probeRenderd);
+-    return s_renderdStatus;
++    char prop[PROPERTY_VALUE_MAX];
++    property_get("ro.kernel.qemu", prop, "0");
++    if (atoi(prop) != 1)
++        return -1;
++    property_get("ro.kernel.qemu.gles", prop, "0");
++    return atoi(prop);
+ }
+ 
+ // ----------------------------------------------------------------------------

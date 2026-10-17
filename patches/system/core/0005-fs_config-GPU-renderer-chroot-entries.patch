@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Thu, 15 Oct 2026 19:04:37 +0000
+Subject: [PATCH 5/8] fs_config: GPU renderer chroot entries
+
+From retro-android-ports by pukikiko: https://github.com/pukikiko/retro-android-ports
+---
+ include/private/android_filesystem_config.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/include/private/android_filesystem_config.h b/include/private/android_filesystem_config.h
+index 0ed0d78..77e5c5d 100644
+--- a/include/private/android_filesystem_config.h
++++ b/include/private/android_filesystem_config.h
+@@ -216,6 +216,10 @@ static const struct fs_path_config android_dirs[] = {
+ ** and will allow partial matches.
+ */
+ static const struct fs_path_config android_files[] = {
++    /* glrenderd's chroot, everything that gets exec'd in there (the linker included) */
++    { 00755, AID_ROOT,      AID_ROOT,      0, "system/glr/hwchroot" },
++    { 00755, AID_ROOT,      AID_ROOT,      0, "system/glr/root/glrenderd" },
++    { 00755, AID_ROOT,      AID_ROOT,      0, "system/glr/root/system/bin/linker" },
+     { 00440, AID_ROOT,      AID_SHELL,     0, "system/etc/init.goldfish.rc" },
+     { 00550, AID_ROOT,      AID_SHELL,     0, "system/etc/init.goldfish.sh" },
+     { 00440, AID_ROOT,      AID_SHELL,     0, "system/etc/init.trout.rc" },

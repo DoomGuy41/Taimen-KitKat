@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Thu, 15 Oct 2026 21:41:22 +0000
+Subject: [PATCH 1/2] vibrator: fall back to /sys/class/leds/vibrator
+ (transient trigger)
+
+The 4.4 kernel has no timed_output; the DRV2624 haptics driver is a LED class device.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ vibrator/vibrator.c | 29 +++++++++++++++++++++++++++--
+ 1 file changed, 27 insertions(+), 2 deletions(-)
+
+diff --git a/vibrator/vibrator.c b/vibrator/vibrator.c
+index f946ce1..4607da9 100644
+--- a/vibrator/vibrator.c
++++ b/vibrator/vibrator.c
+@@ -20,8 +20,33 @@
+ #include <unistd.h>
+ #include <fcntl.h>
+ #include <errno.h>
++#include <string.h>
+ 
+ #define THE_DEVICE "/sys/class/timed_output/vibrator/enable"
++/* recent kernels: vibrator exposed as a LED with the transient trigger */
++#define LED_DIR "/sys/class/leds/vibrator/"
++
++static int write_str(const char *path, const char *str)
++{
++    int fd = open(path, O_WRONLY);
++    if (fd < 0)
++        return -errno;
++    int len = strlen(str);
++    int ret = write(fd, str, len);
++    close(fd);
++    return ret == len ? 0 : -1;
++}
++
++static int led_vibrator(int timeout_ms)
++{
++    char value[20];
++    if (timeout_ms <= 0)
++        return write_str(LED_DIR "activate", "0");
++    sprintf(value, "%d", timeout_ms);
++    if (write_str(LED_DIR "duration", value) < 0)
++        return -1;
++    return write_str(LED_DIR "activate", "1");
++}
+ 
+ int vibrator_exists()
+ {
+@@ -35,7 +60,7 @@ int vibrator_exists()
+ 
+     fd = open(THE_DEVICE, O_RDWR);
+     if(fd < 0)
+-        return 0;
++        return access(LED_DIR "activate", W_OK) == 0;
+     close(fd);
+     return 1;
+ }
+@@ -53,7 +78,7 @@ static int sendit(int timeout_ms)
+ 
+     fd = open(THE_DEVICE, O_RDWR);
+     if(fd < 0)
+-        return errno;
++        return led_vibrator(timeout_ms);
+ 
+     nwr = sprintf(value, "%d\n", timeout_ms);
+     ret = write(fd, value, nwr);

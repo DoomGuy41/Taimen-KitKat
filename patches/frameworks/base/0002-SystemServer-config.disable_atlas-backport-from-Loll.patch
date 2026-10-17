@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Thu, 15 Oct 2026 18:51:54 +0000
+Subject: [PATCH 2/5] SystemServer: config.disable_atlas (backport from
+ Lollipop)
+
+---
+ services/java/com/android/server/SystemServer.java | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/services/java/com/android/server/SystemServer.java b/services/java/com/android/server/SystemServer.java
+index a42cbcfe..147f4027 100644
+--- a/services/java/com/android/server/SystemServer.java
++++ b/services/java/com/android/server/SystemServer.java
+@@ -782,7 +782,10 @@ class ServerThread {
+                 }
+             }
+ 
+-            if (!disableNonCoreServices) {
++            // Lollipop backport: config.disable_atlas (the atlas assumes GPU rendering;
++            // with software rendering it finds no config and kills system_server)
++            if (!disableNonCoreServices
++                    && !SystemProperties.getBoolean("config.disable_atlas", false)) {
+                 try {
+                     Slog.i(TAG, "Assets Atlas Service");
+                     atlas = new AssetAtlasService(context);

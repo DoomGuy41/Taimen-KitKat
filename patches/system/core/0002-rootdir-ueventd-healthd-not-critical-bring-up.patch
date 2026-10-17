@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 21:43:29 +0000
+Subject: [PATCH 2/8] rootdir: ueventd/healthd not critical (bring-up)
+
+---
+ rootdir/init.rc | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/rootdir/init.rc b/rootdir/init.rc
+index 4cf2a65..b752067 100644
+--- a/rootdir/init.rc
++++ b/rootdir/init.rc
+@@ -418,17 +418,14 @@ on property:sys.sysctl.tcp_def_init_rwnd=*
+ ##
+ service ueventd /sbin/ueventd
+     class core
+-    critical
+     seclabel u:r:ueventd:s0
+ 
+ service healthd /sbin/healthd
+     class core
+-    critical
+     seclabel u:r:healthd:s0
+ 
+ service healthd-charger /sbin/healthd -n
+     class charger
+-    critical
+     seclabel u:r:healthd:s0
+ 
+ on property:selinux.reload_policy=1

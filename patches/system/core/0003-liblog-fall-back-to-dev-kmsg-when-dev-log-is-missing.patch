@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 22:20:39 +0000
+Subject: [PATCH 3/8] liblog: fall back to /dev/kmsg when /dev/log is missing
+ (4.4 kernel)
+
+---
+ liblog/logd_write.c | 34 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
+
+diff --git a/liblog/logd_write.c b/liblog/logd_write.c
+index fff7cc4..675bd01 100644
+--- a/liblog/logd_write.c
++++ b/liblog/logd_write.c
+@@ -44,6 +44,35 @@
+ #define log_close(filedes) close(filedes)
+ #endif
+ 
++
++/* Pixel 2 XL: the 4.4 kernel no longer has the logger driver (/dev/log/*).
++ * Fall back to /dev/kmsg: each message becomes a "<level>Tag[pid]: message" line,
++ * readable with dmesg. The binary "events" buffer is dropped. */
++static int kmsg_fd = -1;
++
++static int __write_to_log_kmsg(log_id_t log_id, struct iovec *vec, size_t nr)
++{
++    char buf[1024];
++    int prio, lvl, n;
++    const char *tag, *msg;
++
++    if (kmsg_fd < 0 || nr < 3 || log_id == LOG_ID_EVENTS)
++        return -1;
++    prio = *(unsigned char *)vec[0].iov_base;
++    tag = (const char *)vec[1].iov_base;
++    msg = (const char *)vec[2].iov_base;
++    /* ANDROID_LOG_VERBOSE(2)..FATAL(7) -> kernel levels 7..2 */
++    lvl = (prio >= 7) ? 2 : (prio == 6) ? 3 : (prio == 5) ? 4 : (prio == 4) ? 6 : 7;
++    n = snprintf(buf, sizeof(buf), "<%d>%s[%d]: %s", lvl, tag, getpid(), msg);
++    if (n <= 0)
++        return -1;
++    if (n >= (int)sizeof(buf))
++        n = sizeof(buf) - 1;
++    if (buf[n - 1] == '\n')
++        n--;
++    return write(kmsg_fd, buf, n);
++}
++
+ static int __write_to_log_init(log_id_t, struct iovec *vec, size_t nr);
+ static int (*write_to_log)(log_id_t, struct iovec *vec, size_t nr) = __write_to_log_init;
+ #ifdef HAVE_PTHREADS
+@@ -118,6 +147,11 @@ static int __write_to_log_init(log_id_t log_id, struct iovec *vec, size_t nr)
+             log_fds[LOG_ID_RADIO] = -1;
+             log_fds[LOG_ID_EVENTS] = -1;
+             write_to_log = __write_to_log_null;
++#if !FAKE_LOG_DEVICE
++            kmsg_fd = log_open("/dev/kmsg", O_WRONLY);
++            if (kmsg_fd >= 0)
++                write_to_log = __write_to_log_kmsg;
++#endif
+         }
+ 
+         if (log_fds[LOG_ID_SYSTEM] < 0) {

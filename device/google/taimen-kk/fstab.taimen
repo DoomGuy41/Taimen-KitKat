@@ -1,0 +1,5 @@
+# Pixel 2 XL: plain device nodes (KitKat's ueventd does not create the 4.4 kernel by-name links)
+# system_a = sda7, userdata = sda13 (ext4 made by KitKat's make_ext4fs, unencrypted)
+/dev/block/sda7   /system  ext4  ro,barrier=1                                     wait
+/dev/block/sda13  /data    ext4  noatime,nosuid,nodev,barrier=1,noauto_da_alloc   wait
+/dev/block/sda4   /persist ext4  noatime,nosuid,nodev,barrier=1   wait

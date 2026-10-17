@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Thu, 15 Oct 2026 23:41:21 +0000
+Subject: [PATCH 1/4] reference-ril: AT+GSN (the Qualcomm modem never completes
+ AT+CGSN), 15 s timeout per AT command
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ reference-ril/atchannel.c     | 4 ++++
+ reference-ril/reference-ril.c | 4 ++--
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/reference-ril/atchannel.c b/reference-ril/atchannel.c
+index ee13f19..4620279 100644
+--- a/reference-ril/atchannel.c
++++ b/reference-ril/atchannel.c
+@@ -797,6 +797,10 @@ static int at_send_command_full (const char *command, ATCommandType type,
+                     const char *responsePrefix, const char *smspdu,
+                     long long timeoutMsec, ATResponse **pp_outResponse)
+ {
++    /* Pixel 2 XL: some commands of the Qualcomm modem never send a final response:
++     * without a timeout the RIL would stay blocked forever */
++    if (timeoutMsec == 0)
++        timeoutMsec = 15000;
+     int err;
+ 
+     if (0 != pthread_equal(s_tid_reader, pthread_self())) {
+diff --git a/reference-ril/reference-ril.c b/reference-ril/reference-ril.c
+index 1b7a7bc..f148b76 100644
+--- a/reference-ril/reference-ril.c
++++ b/reference-ril/reference-ril.c
+@@ -1018,7 +1018,7 @@ static void requestCdmaDeviceIdentity(int request, void *data,
+     responseStr[1] = "----";
+     responseStr[2] = "77777777";
+ 
+-    err = at_send_command_numeric("AT+CGSN", &p_response);
++    err = at_send_command_numeric("AT+GSN", &p_response);
+     if (err < 0 || p_response->success == 0) {
+         RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);
+         return;
+@@ -2143,7 +2143,7 @@ onRequest (int request, void *data, size_t datalen, RIL_Token t)
+ 
+         case RIL_REQUEST_GET_IMEI:
+             p_response = NULL;
+-            err = at_send_command_numeric("AT+CGSN", &p_response);
++            err = at_send_command_numeric("AT+GSN", &p_response);
+ 
+             if (err < 0 || p_response->success == 0) {
+                 RIL_onRequestComplete(t, RIL_E_GENERIC_FAILURE, NULL, 0);

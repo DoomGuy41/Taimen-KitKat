@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Fri, 16 Oct 2026 21:59:50 +0000
+Subject: [PATCH 8/8] elapsedRealtime on CLOCK_BOOTTIME; init reads the whole
+ kernel command line
+
+Without /dev/alarm, CLOCK_BOOTTIME gives the time since boot including suspend. The Pixel 2
+kernel command line is longer than the 1024-byte buffer of KitKat init (androidboot.slot_suffix
+and androidboot.serialno were cut off).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ init/util.c              | 4 ++--
+ libutils/SystemClock.cpp | 8 +++-----
+ 2 files changed, 5 insertions(+), 7 deletions(-)
+
+diff --git a/init/util.c b/init/util.c
+index 1908b3a..66123b5 100644
+--- a/init/util.c
++++ b/init/util.c
+@@ -443,13 +443,13 @@ void get_hardware_name(char *hardware, unsigned int *revision)
+ void import_kernel_cmdline(int in_qemu,
+                            void (*import_kernel_nv)(char *name, int in_qemu))
+ {
+-    char cmdline[1024];
++    char cmdline[4096];  // the Pixel 2 command line is longer than 1024 (slot_suffix, serialno were lost)
+     char *ptr;
+     int fd;
+ 
+     fd = open("/proc/cmdline", O_RDONLY);
+     if (fd >= 0) {
+-        int n = read(fd, cmdline, 1023);
++        int n = read(fd, cmdline, sizeof(cmdline) - 1);
+         if (n < 0) n = 0;
+ 
+         /* get rid of trailing newline, it happens */
+diff --git a/libutils/SystemClock.cpp b/libutils/SystemClock.cpp
+index ac8da88..7d3ddb6 100644
+--- a/libutils/SystemClock.cpp
++++ b/libutils/SystemClock.cpp
+@@ -119,11 +119,10 @@ int64_t elapsedRealtimeNano()
+     static volatile int prevMethod;
+ #endif
+ 
+-#if 0
+     /*
+-     * b/7100774
+-     * clock_gettime appears to have clock skews and can sometimes return
+-     * backwards values. Disable its use until we find out what's wrong.
++     * Pixel 2 XL: enabled again (as in Lollipop). Without /dev/alarm, the fallback below gave
++     * CLOCK_MONOTONIC, which stops during suspend, whereas alarms (timerfd) follow
++     * CLOCK_BOOTTIME: they expired too early for AlarmManager and got stuck.
+      */
+     result = clock_gettime(CLOCK_BOOTTIME, &ts);
+     if (result == 0) {
+@@ -132,7 +131,6 @@ int64_t elapsedRealtimeNano()
+                         METHOD_CLOCK_GETTIME);
+         return timestamp;
+     }
+-#endif
+ 
+     // CLOCK_BOOTTIME doesn't exist, fallback to /dev/alarm
+     static int s_fd = -1;

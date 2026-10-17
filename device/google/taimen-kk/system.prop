@@ -1,0 +1,2 @@
+# Modem AT port used by the reference RIL
+rild.libargs=-d /dev/at_mdm0

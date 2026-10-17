@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Fri, 16 Oct 2026 20:16:09 +0000
+Subject: [PATCH] Time and alarms without /dev/alarm (timerfd, settimeofday,
+ CAP_WAKE_ALARM)
+
+Dalvik part: the zygote sets capabilities with the version 3 (64-bit) capset ABI so
+system_server keeps CAP_WAKE_ALARM and CAP_BLOCK_SUSPEND (capabilities 35 and 36).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ vm/native/dalvik_system_Zygote.cpp | 13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/vm/native/dalvik_system_Zygote.cpp b/vm/native/dalvik_system_Zygote.cpp
+index e2b618b..6100ea6 100644
+--- a/vm/native/dalvik_system_Zygote.cpp
++++ b/vm/native/dalvik_system_Zygote.cpp
+@@ -427,20 +427,23 @@ static void enableDebugFeatures(u4 debugFlags)
+ static int setCapabilities(int64_t permitted, int64_t effective)
+ {
+ #ifdef HAVE_ANDROID_OS
++    // Pixel 2 XL: version 3 (64-bit) for CAP_WAKE_ALARM and CAP_BLOCK_SUSPEND (35, 36)
+     struct __user_cap_header_struct capheader;
+-    struct __user_cap_data_struct capdata;
++    struct __user_cap_data_struct capdata[2];
+ 
+     memset(&capheader, 0, sizeof(capheader));
+     memset(&capdata, 0, sizeof(capdata));
+ 
+-    capheader.version = _LINUX_CAPABILITY_VERSION;
++    capheader.version = _LINUX_CAPABILITY_VERSION_3;
+     capheader.pid = 0;
+ 
+-    capdata.effective = effective;
+-    capdata.permitted = permitted;
++    capdata[0].effective = (uint32_t)effective;
++    capdata[0].permitted = (uint32_t)permitted;
++    capdata[1].effective = (uint32_t)(effective >> 32);
++    capdata[1].permitted = (uint32_t)(permitted >> 32);
+ 
+     ALOGV("CAPSET perm=%llx eff=%llx", permitted, effective);
+-    if (capset(&capheader, &capdata) != 0)
++    if (capset(&capheader, &capdata[0]) != 0)
+         return errno;
+ #endif /*HAVE_ANDROID_OS*/
+ 

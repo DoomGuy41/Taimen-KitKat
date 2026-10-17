@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Thu, 15 Oct 2026 18:30:42 +0000
+Subject: [PATCH] gralloc: framebuffer stride = line_length reported by the
+ kernel
+
+From retro-android-ports by pukikiko: https://github.com/pukikiko/retro-android-ports
+---
+ modules/gralloc/gralloc.cpp | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/modules/gralloc/gralloc.cpp b/modules/gralloc/gralloc.cpp
+index a2dec6b..5b827a8 100644
+--- a/modules/gralloc/gralloc.cpp
++++ b/modules/gralloc/gralloc.cpp
+@@ -230,6 +230,18 @@ static int gralloc_alloc(alloc_device_t* dev,
+     int err;
+     if (usage & GRALLOC_USAGE_HW_FB) {
+         err = gralloc_alloc_framebuffer(dev, size, usage, pHandle);
++        if (err == 0) {
++            // MAPLE: framebuffer slices are laid out with the kernel's
++            // line_length (e.g. mdss pads 1080 RGBA lines to 1088 px for
++            // alignment), but the generic align-4 math above reports the
++            // unpadded stride. RenderEngine then shears every row and the
++            // panel shows a parallelogram. Report the real stride.
++            private_module_t* m = reinterpret_cast<private_module_t*>(
++                    dev->common.module);
++            if (m->finfo.line_length != 0 && bpp != 0) {
++                stride = m->finfo.line_length / bpp;
++            }
++        }
+     } else {
+         err = gralloc_alloc_buffer(dev, size, usage, pHandle);
+     }

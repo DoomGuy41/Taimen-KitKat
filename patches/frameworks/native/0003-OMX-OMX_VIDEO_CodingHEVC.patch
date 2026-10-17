@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Fri, 16 Oct 2026 23:37:02 +0000
+Subject: [PATCH 3/3] OMX: OMX_VIDEO_CodingHEVC
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ include/media/openmax/OMX_Video.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/media/openmax/OMX_Video.h b/include/media/openmax/OMX_Video.h
+index 4441a7a..800ed41 100644
+--- a/include/media/openmax/OMX_Video.h
++++ b/include/media/openmax/OMX_Video.h
+@@ -87,6 +87,7 @@ typedef enum OMX_VIDEO_CODINGTYPE {
+     OMX_VIDEO_CodingMJPEG,      /**< Motion JPEG */
+     OMX_VIDEO_CodingVP8,        /**< Google VP8, formerly known as On2 VP8 */
+     OMX_VIDEO_CodingVP9,        /**< Google VP9 */
++    OMX_VIDEO_CodingHEVC,       /**< ITU H.265/HEVC (as in Android 5+) */
+     OMX_VIDEO_CodingKhronosExtensions = 0x6F000000, /**< Reserved region for introducing Khronos Standard Extensions */ 
+     OMX_VIDEO_CodingVendorStartUnused = 0x7F000000, /**< Reserved region for introducing Vendor Extensions */
+     OMX_VIDEO_CodingMax = 0x7FFFFFFF

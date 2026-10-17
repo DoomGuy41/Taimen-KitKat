@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Fri, 16 Oct 2026 20:50:21 +0000
+Subject: [PATCH 7/8] fs_mgr: clear the ext4 project quota feature before
+ mounting
+
+Another system (LineageOS on the other slot) can enable the project quota feature
+(RO_COMPAT_PROJECT) on userdata; the stock 4.4 kernel does not know it and refuses the
+read-write mount, so mount_all fails. The flag is cleared from the superblock before
+mounting, like "tune2fs -O ^project". Only done for /data, and skipped when the superblock
+has metadata_csum.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ fs_mgr/fs_mgr.c | 35 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+
+diff --git a/fs_mgr/fs_mgr.c b/fs_mgr/fs_mgr.c
+index f432f6a..2a74d55 100644
+--- a/fs_mgr/fs_mgr.c
++++ b/fs_mgr/fs_mgr.c
+@@ -537,6 +537,37 @@ static void fs_set_blk_ro(const char *blockdev)
+  * sets the underlying block device to read-only if the mount is read-only.
+  * See "man 2 mount" for return values.
+  */
++/* Pixel 2 XL: another system (e.g. LineageOS on slot B) may enable the project quota feature
++ * (RO_COMPAT_PROJECT) on userdata; the stock 4.4 kernel does not know it and refuses the
++ * read-write mount, which makes mount_all fail. The flag is cleared from the superblock
++ * before mounting (like "tune2fs -O ^project", the quota inode simply stays unused). Skipped
++ * when the superblock has a checksum (metadata_csum), which would need recomputing. /data only. */
++#define EXT4_SB_OFFSET          1024
++#define EXT4_RO_COMPAT_CSUM     0x0400
++#define EXT4_RO_COMPAT_PROJECT  0x2000
++static void ext4_drop_project_quota(const char *blk_device)
++{
++    unsigned char sb[1024];
++    unsigned int ro_compat;
++    int fd = open(blk_device, O_RDWR);
++    if (fd < 0)
++        return;
++    if (pread(fd, sb, sizeof(sb), EXT4_SB_OFFSET) == sizeof(sb) &&
++        sb[0x38] == 0x53 && sb[0x39] == 0xef) {
++        memcpy(&ro_compat, sb + 0x64, 4);
++        if ((ro_compat & EXT4_RO_COMPAT_PROJECT) && !(ro_compat & EXT4_RO_COMPAT_CSUM)) {
++            ro_compat &= ~EXT4_RO_COMPAT_PROJECT;
++            memcpy(sb + 0x64, &ro_compat, 4);
++            memset(sb + 0x26c, 0, 4);  /* s_prj_quota_inum */
++            if (pwrite(fd, sb, sizeof(sb), EXT4_SB_OFFSET) == sizeof(sb)) {
++                fsync(fd);
++                ERROR("%s: project quota removed (added by another system)\n", blk_device);
++            }
++        }
++    }
++    close(fd);
++}
++
+ static int __mount(const char *source, const char *target,
+                    const char *filesystemtype, unsigned long mountflags,
+                    const void *data)
+@@ -610,6 +641,10 @@ int fs_mgr_mount_all(struct fstab *fstab)
+             }
+         }
+ 
++        if (!strcmp(fstab->recs[i].fs_type, "ext4") && !strcmp(fstab->recs[i].mount_point, "/data")) {
++            ext4_drop_project_quota(fstab->recs[i].blk_device);
++        }
++
+         mret = __mount(fstab->recs[i].blk_device, fstab->recs[i].mount_point,
+                      fstab->recs[i].fs_type, fstab->recs[i].flags,
+                      fstab->recs[i].fs_options);

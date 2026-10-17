@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.taimen.diag"
+    android:sharedUserId="android.uid.system"
+    android:versionCode="1" android:versionName="1.0">
+    <uses-sdk android:minSdkVersion="19" android:targetSdkVersion="19" />
+    <uses-feature android:glEsVersion="0x00020000" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.NFC" />
+    <application android:label="Taimen Diag" android:icon="@android:drawable/ic_menu_info_details">
+        <activity android:name=".DiagActivity" android:label="Taimen Diag"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".GlTestActivity" android:label="3D test"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+        <activity android:name=".CameraPreviewActivity" android:label="Camera preview"
+            android:screenOrientation="portrait" android:exported="true" />
+        <receiver android:name=".AlarmReceiver" />
+    </application>
+</manifest>

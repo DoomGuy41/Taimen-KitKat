@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Thu, 15 Oct 2026 18:30:42 +0000
+Subject: [PATCH 1/5] SystemUI: canvas wallpaper when OpenGL ES 2 is not
+ available
+
+From retro-android-ports by pukikiko: https://github.com/pukikiko/retro-android-ports
+---
+ .../src/com/android/systemui/ImageWallpaper.java    | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/packages/SystemUI/src/com/android/systemui/ImageWallpaper.java b/packages/SystemUI/src/com/android/systemui/ImageWallpaper.java
+index 8092ab3e..e7fd480c 100644
+--- a/packages/SystemUI/src/com/android/systemui/ImageWallpaper.java
++++ b/packages/SystemUI/src/com/android/systemui/ImageWallpaper.java
+@@ -504,7 +504,18 @@ public class ImageWallpaper extends WallpaperService {
+         }
+ 
+         private boolean drawWallpaperWithOpenGL(SurfaceHolder sh, int w, int h, int left, int top) {
+-            if (!initGL(sh)) return false;
++            // MAPLE: EGL may be unusable (software-only GLES without
++            // glrenderd has no ES2 configs, so initGL throws instead of
++            // returning false). Fall back to the canvas path instead of
++            // crashing systemui in a loop (which strands a zombie
++            // KeyguardScrim that eats all touch input).
++            try {
++                if (!initGL(sh)) return false;
++            } catch (RuntimeException e) {
++                android.util.Log.w("ImageWallpaper",
++                        "OpenGL wallpaper unavailable, using canvas", e);
++                return false;
++            }
+ 
+             final float right = left + mBackground.getWidth() * mScale;
+             final float bottom = top + mBackground.getHeight() * mScale;

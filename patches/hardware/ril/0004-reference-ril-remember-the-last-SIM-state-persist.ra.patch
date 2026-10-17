@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Fri, 16 Oct 2026 17:44:11 +0000
+Subject: [PATCH 4/4] reference-ril: remember the last SIM state
+ (persist.radio.taimen_sim) until the modem answers
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ reference-ril/reference-ril.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/reference-ril/reference-ril.c b/reference-ril/reference-ril.c
+index 24666c8..41eafc7 100644
+--- a/reference-ril/reference-ril.c
++++ b/reference-ril/reference-ril.c
+@@ -35,6 +35,7 @@
+ #include <cutils/sockets.h>
+ #include <termios.h>
+ #include <sys/system_properties.h>
++#include <cutils/properties.h>
+ 
+ #include "ril.h"
+ #include "hardware/qemu_pipe.h"
+@@ -2594,6 +2595,17 @@ getSIMStatus()
+     ret = SIM_READY;
+ 
+ done:
++    /* Pixel 2 XL: last known state, to answer correctly before the modem can be reached */
++    if (ret == SIM_ABSENT)
++        property_set("persist.radio.taimen_sim", "absent");
++    else if (ret != SIM_NOT_READY)
++        property_set("persist.radio.taimen_sim", "present");
++    else {
++        char last[PROPERTY_VALUE_MAX];
++        property_get("persist.radio.taimen_sim", last, "");
++        if (!strcmp(last, "absent"))
++            ret = SIM_ABSENT;
++    }
+     at_response_free(p_response);
+     return ret;
+ }

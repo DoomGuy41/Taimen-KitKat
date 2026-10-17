@@ -1,0 +1,5 @@
+*.img
+*.zip
+*.pk8
+/out/
+__pycache__/

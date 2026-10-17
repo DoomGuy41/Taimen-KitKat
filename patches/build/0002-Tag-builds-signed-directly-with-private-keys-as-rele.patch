@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: DoomGuy41 <DoomGuy41@users.noreply.github.com>
+Date: Sat, 17 Oct 2026 16:24:51 +0000
+Subject: [PATCH 2/2] Tag builds signed directly with private keys as
+ release-keys
+
+TARGET_SIGNED_WITH_RELEASE_KEYS := true: the build is signed with the keys given by
+PRODUCT_DEFAULT_DEV_CERTIFICATE, so build tags and the fingerprint say release-keys.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ core/Makefile | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/core/Makefile b/core/Makefile
+index 27f22a9..6e77df7 100644
+--- a/core/Makefile
++++ b/core/Makefile
+@@ -97,6 +97,9 @@ endif
+ # when the target-files is signed in a post-build step.
+ ifeq ($(DEFAULT_SYSTEM_DEV_CERTIFICATE),build/target/product/security/testkey)
+ BUILD_KEYS := test-keys
++else ifeq ($(TARGET_SIGNED_WITH_RELEASE_KEYS),true)
++# built directly with private release keys (no re-signing step)
++BUILD_KEYS := release-keys
+ else
+ BUILD_KEYS := dev-keys
+ endif

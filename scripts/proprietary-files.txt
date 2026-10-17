@@ -1,0 +1,532 @@
+# Proprietary files copied from the Pixel 2 XL factory image RP1A.201005.004.A1 by extract-blobs.sh.
+# Paths on the left are relative to the unpacked factory image: system/ (system.img:/system),
+# vendor/ (vendor.img) and apex/<name>/ (APEX payloads); on the right, relative to vendor/google/taimen.
+#   <source> <destination>      copy a file
+#   dir <destination>           create an empty directory (chroot mount point)
+#   link <destination> <target> create a symbolic link
+# Files built from this repository (hwchroot, the bridges, ...) are added by build-native.sh.
+
+# Android 11 32-bit libraries loaded into KitKat processes by libhyb (/system/a11):
+# Adreno 540 GLES/EGL driver, QTI gralloc, OMX codecs, Qualcomm camera HAL (mm-camera), QMI
+system/lib/android.frameworks.sensorservice@1.0.so a11/system/lib/android.frameworks.sensorservice@1.0.so
+system/lib/android.hardware.camera.common@1.0.so a11/system/lib/android.hardware.camera.common@1.0.so
+system/lib/android.hardware.camera.device@1.0.so a11/system/lib/android.hardware.camera.device@1.0.so
+system/lib/android.hardware.camera.device@3.2.so a11/system/lib/android.hardware.camera.device@3.2.so
+system/lib/android.hardware.camera.device@3.3.so a11/system/lib/android.hardware.camera.device@3.3.so
+system/lib/android.hardware.camera.device@3.4.so a11/system/lib/android.hardware.camera.device@3.4.so
+system/lib/android.hardware.camera.device@3.5.so a11/system/lib/android.hardware.camera.device@3.5.so
+system/lib/android.hardware.camera.device@3.6.so a11/system/lib/android.hardware.camera.device@3.6.so
+system/lib/android.hardware.camera.provider@2.4.so a11/system/lib/android.hardware.camera.provider@2.4.so
+system/lib/android.hardware.common-V1-ndk_platform.so a11/system/lib/android.hardware.common-V1-ndk_platform.so
+system/lib/android.hardware.configstore-utils.so a11/system/lib/android.hardware.configstore-utils.so
+system/lib/android.hardware.configstore@1.0.so a11/system/lib/android.hardware.configstore@1.0.so
+system/lib/android.hardware.configstore@1.1.so a11/system/lib/android.hardware.configstore@1.1.so
+system/lib/android.hardware.graphics.allocator@2.0.so a11/system/lib/android.hardware.graphics.allocator@2.0.so
+system/lib/android.hardware.graphics.allocator@3.0.so a11/system/lib/android.hardware.graphics.allocator@3.0.so
+system/lib/android.hardware.graphics.allocator@4.0.so a11/system/lib/android.hardware.graphics.allocator@4.0.so
+system/lib/android.hardware.graphics.common-V1-ndk_platform.so a11/system/lib/android.hardware.graphics.common-V1-ndk_platform.so
+system/lib/android.hardware.graphics.common@1.0.so a11/system/lib/android.hardware.graphics.common@1.0.so
+system/lib/android.hardware.graphics.common@1.1.so a11/system/lib/android.hardware.graphics.common@1.1.so
+system/lib/android.hardware.graphics.common@1.2.so a11/system/lib/android.hardware.graphics.common@1.2.so
+system/lib/android.hardware.graphics.mapper@2.0.so a11/system/lib/android.hardware.graphics.mapper@2.0.so
+system/lib/android.hardware.graphics.mapper@2.1.so a11/system/lib/android.hardware.graphics.mapper@2.1.so
+system/lib/android.hardware.graphics.mapper@3.0.so a11/system/lib/android.hardware.graphics.mapper@3.0.so
+system/lib/android.hardware.graphics.mapper@4.0.so a11/system/lib/android.hardware.graphics.mapper@4.0.so
+apex/com.android.vndk.current/lib/android.hardware.power-V1-ndk_platform.so a11/system/lib/android.hardware.power-V1-ndk_platform.so
+system/lib/android.hardware.power@1.0.so a11/system/lib/android.hardware.power@1.0.so
+system/lib/android.hardware.power@1.1.so a11/system/lib/android.hardware.power@1.1.so
+system/lib/android.hardware.power@1.2.so a11/system/lib/android.hardware.power@1.2.so
+system/lib/android.hardware.sensors@1.0.so a11/system/lib/android.hardware.sensors@1.0.so
+system/lib/android.hidl.allocator@1.0.so a11/system/lib/android.hidl.allocator@1.0.so
+system/lib/android.hidl.memory.token@1.0.so a11/system/lib/android.hidl.memory.token@1.0.so
+system/lib/android.hidl.memory@1.0.so a11/system/lib/android.hidl.memory@1.0.so
+system/lib/libEGL.so a11/system/lib/libEGL.so
+system/lib/libGLESv2.so a11/system/lib/libGLESv2.so
+system/lib/libGLESv3.so a11/system/lib/libGLESv3.so
+system/lib/libSurfaceFlingerProp.so a11/system/lib/libSurfaceFlingerProp.so
+system/lib/libandroid_runtime_lazy.so a11/system/lib/libandroid_runtime_lazy.so
+apex/com.android.art.release/lib/libandroidicu.so a11/system/lib/libandroidicu.so
+system/lib/libbacktrace.so a11/system/lib/libbacktrace.so
+system/lib/libbase.so a11/system/lib/libbase.so
+system/lib/libbinder.so a11/system/lib/libbinder.so
+system/lib/libbinder_ndk.so a11/system/lib/libbinder_ndk.so
+system/lib/libc++.so a11/system/lib/libc++.so
+system/lib/libcamera_metadata.so a11/system/lib/libcamera_metadata.so
+system/lib/libcgrouprc.so a11/system/lib/libcgrouprc.so
+system/lib/libcrypto.so a11/system/lib/libcrypto.so
+system/lib/libdexfile_support.so a11/system/lib/libdexfile_support.so
+system/lib/libexif.so a11/system/lib/libexif.so
+system/lib/libfmq.so a11/system/lib/libfmq.so
+system/lib/libgralloctypes.so a11/system/lib/libgralloctypes.so
+system/lib/libgraphicsenv.so a11/system/lib/libgraphicsenv.so
+system/lib/libhardware.so a11/system/lib/libhardware.so
+system/lib/libhidlbase.so a11/system/lib/libhidlbase.so
+system/lib/libhidlmemory.so a11/system/lib/libhidlmemory.so
+apex/com.android.art.release/lib/libicui18n.so a11/system/lib/libicui18n.so
+apex/com.android.art.release/lib/libicuuc.so a11/system/lib/libicuuc.so
+system/lib/libion.so a11/system/lib/libion.so
+system/lib/libjpeg.so a11/system/lib/libjpeg.so
+system/lib/liblzma.so a11/system/lib/liblzma.so
+system/lib/libnativebridge_lazy.so a11/system/lib/libnativebridge_lazy.so
+system/lib/libnativeloader_lazy.so a11/system/lib/libnativeloader_lazy.so
+system/lib/libnativewindow.so a11/system/lib/libnativewindow.so
+system/lib/libprocessgroup.so a11/system/lib/libprocessgroup.so
+system/lib/libsync.so a11/system/lib/libsync.so
+system/lib/libtinyxml2.so a11/system/lib/libtinyxml2.so
+system/lib/libui.so a11/system/lib/libui.so
+system/lib/libunwindstack.so a11/system/lib/libunwindstack.so
+system/lib/libutils.so a11/system/lib/libutils.so
+system/lib/libvndksupport.so a11/system/lib/libvndksupport.so
+system/lib/libxml2.so a11/system/lib/libxml2.so
+system/lib/libyuv.so a11/system/lib/libyuv.so
+vendor/lib/android.hardware.camera.provider@2.4-external.so a11/vendor/lib/android.hardware.camera.provider@2.4-external.so
+vendor/lib/android.hardware.camera.provider@2.4-legacy.so a11/vendor/lib/android.hardware.camera.provider@2.4-legacy.so
+vendor/lib/camera.device@1.0-impl.so a11/vendor/lib/camera.device@1.0-impl.so
+vendor/lib/camera.device@3.2-impl.so a11/vendor/lib/camera.device@3.2-impl.so
+vendor/lib/camera.device@3.3-impl.so a11/vendor/lib/camera.device@3.3-impl.so
+vendor/lib/camera.device@3.4-external-impl.so a11/vendor/lib/camera.device@3.4-external-impl.so
+vendor/lib/camera.device@3.4-impl.so a11/vendor/lib/camera.device@3.4-impl.so
+vendor/lib/camera.device@3.5-external-impl.so a11/vendor/lib/camera.device@3.5-external-impl.so
+vendor/lib/camera.device@3.5-impl.so a11/vendor/lib/camera.device@3.5-impl.so
+vendor/lib/camera.device@3.6-external-impl.so a11/vendor/lib/camera.device@3.6-external-impl.so
+vendor/lib/egl/eglSubDriverAndroid.so a11/vendor/lib/egl/eglSubDriverAndroid.so
+vendor/lib/egl/libEGL_adreno.so a11/vendor/lib/egl/libEGL_adreno.so
+vendor/lib/egl/libGLESv1_CM_adreno.so a11/vendor/lib/egl/libGLESv1_CM_adreno.so
+vendor/lib/egl/libGLESv2_adreno.so a11/vendor/lib/egl/libGLESv2_adreno.so
+vendor/lib/hw/camera.msm8998.so a11/vendor/lib/hw/camera.msm8998.so
+vendor/lib/hw/gralloc.msm8998.so a11/vendor/lib/hw/gralloc.msm8998.so
+vendor/lib/hw/sensors.vl530l0.tof.so a11/vendor/lib/hw/sensors.vl530l0.tof.so
+vendor/lib/libC2D2.so a11/vendor/lib/libC2D2.so
+vendor/lib/libCB.so a11/vendor/lib/libCB.so
+vendor/lib/libOmxCore.so a11/vendor/lib/libOmxCore.so
+vendor/lib/libOmxVdec.so a11/vendor/lib/libOmxVdec.so
+vendor/lib/libOmxVenc.so a11/vendor/lib/libOmxVenc.so
+vendor/lib/libactuator_lc898214xd.so a11/vendor/lib/libactuator_lc898214xd.so
+vendor/lib/libadreno_utils.so a11/vendor/lib/libadreno_utils.so
+vendor/lib/libc2d30_bltlib.so a11/vendor/lib/libc2d30_bltlib.so
+vendor/lib/libc2dcolorconvert.so a11/vendor/lib/libc2dcolorconvert.so
+vendor/lib/libchromatix_imx179_pixel_common.so a11/vendor/lib/libchromatix_imx179_pixel_common.so
+vendor/lib/libchromatix_imx179_pixel_postproc.so a11/vendor/lib/libchromatix_imx179_pixel_postproc.so
+vendor/lib/libchromatix_imx179_pixel_res0_snapshot_3a.so a11/vendor/lib/libchromatix_imx179_pixel_res0_snapshot_3a.so
+vendor/lib/libchromatix_imx179_pixel_res0_snapshot_cpp.so a11/vendor/lib/libchromatix_imx179_pixel_res0_snapshot_cpp.so
+vendor/lib/libchromatix_imx179_pixel_res0_snapshot_isp.so a11/vendor/lib/libchromatix_imx179_pixel_res0_snapshot_isp.so
+vendor/lib/libchromatix_imx179_pixel_res1_video_30_3a.so a11/vendor/lib/libchromatix_imx179_pixel_res1_video_30_3a.so
+vendor/lib/libchromatix_imx179_pixel_res1_video_30_cpp.so a11/vendor/lib/libchromatix_imx179_pixel_res1_video_30_cpp.so
+vendor/lib/libchromatix_imx179_pixel_res1_video_30_isp.so a11/vendor/lib/libchromatix_imx179_pixel_res1_video_30_isp.so
+vendor/lib/libchromatix_imx179_pixel_res2_video_qtr_3a.so a11/vendor/lib/libchromatix_imx179_pixel_res2_video_qtr_3a.so
+vendor/lib/libchromatix_imx179_pixel_res2_video_qtr_cpp.so a11/vendor/lib/libchromatix_imx179_pixel_res2_video_qtr_cpp.so
+vendor/lib/libchromatix_imx179_pixel_res2_video_qtr_isp.so a11/vendor/lib/libchromatix_imx179_pixel_res2_video_qtr_isp.so
+vendor/lib/libchromatix_imx362_pixel_common.so a11/vendor/lib/libchromatix_imx362_pixel_common.so
+vendor/lib/libchromatix_imx362_pixel_postproc.so a11/vendor/lib/libchromatix_imx362_pixel_postproc.so
+vendor/lib/libchromatix_imx362_pixel_res0_snapshot_3a.so a11/vendor/lib/libchromatix_imx362_pixel_res0_snapshot_3a.so
+vendor/lib/libchromatix_imx362_pixel_res0_snapshot_cpp.so a11/vendor/lib/libchromatix_imx362_pixel_res0_snapshot_cpp.so
+vendor/lib/libchromatix_imx362_pixel_res0_snapshot_cpp_preview.so a11/vendor/lib/libchromatix_imx362_pixel_res0_snapshot_cpp_preview.so
+vendor/lib/libchromatix_imx362_pixel_res0_snapshot_isp.so a11/vendor/lib/libchromatix_imx362_pixel_res0_snapshot_isp.so
+vendor/lib/libchromatix_imx362_pixel_res0_snapshot_isp_preview.so a11/vendor/lib/libchromatix_imx362_pixel_res0_snapshot_isp_preview.so
+vendor/lib/libchromatix_imx362_pixel_res1_video_30_3a.so a11/vendor/lib/libchromatix_imx362_pixel_res1_video_30_3a.so
+vendor/lib/libchromatix_imx362_pixel_res1_video_30_cpp.so a11/vendor/lib/libchromatix_imx362_pixel_res1_video_30_cpp.so
+vendor/lib/libchromatix_imx362_pixel_res1_video_30_isp.so a11/vendor/lib/libchromatix_imx362_pixel_res1_video_30_isp.so
+vendor/lib/libchromatix_imx362_pixel_res1_zzhdr_video_30_3a.so a11/vendor/lib/libchromatix_imx362_pixel_res1_zzhdr_video_30_3a.so
+vendor/lib/libchromatix_imx362_pixel_res1_zzhdr_video_30_cpp.so a11/vendor/lib/libchromatix_imx362_pixel_res1_zzhdr_video_30_cpp.so
+vendor/lib/libchromatix_imx362_pixel_res1_zzhdr_video_30_isp.so a11/vendor/lib/libchromatix_imx362_pixel_res1_zzhdr_video_30_isp.so
+vendor/lib/libchromatix_imx362_pixel_res2_video_60_3a.so a11/vendor/lib/libchromatix_imx362_pixel_res2_video_60_3a.so
+vendor/lib/libchromatix_imx362_pixel_res2_video_60_cpp.so a11/vendor/lib/libchromatix_imx362_pixel_res2_video_60_cpp.so
+vendor/lib/libchromatix_imx362_pixel_res2_video_60_isp.so a11/vendor/lib/libchromatix_imx362_pixel_res2_video_60_isp.so
+vendor/lib/libchromatix_imx362_pixel_res3_video_120_3a.so a11/vendor/lib/libchromatix_imx362_pixel_res3_video_120_3a.so
+vendor/lib/libchromatix_imx362_pixel_res3_video_120_cpp.so a11/vendor/lib/libchromatix_imx362_pixel_res3_video_120_cpp.so
+vendor/lib/libchromatix_imx362_pixel_res3_video_120_isp.so a11/vendor/lib/libchromatix_imx362_pixel_res3_video_120_isp.so
+vendor/lib/libchromatix_imx362_pixel_res4_video_240_3a.so a11/vendor/lib/libchromatix_imx362_pixel_res4_video_240_3a.so
+vendor/lib/libchromatix_imx362_pixel_res4_video_240_cpp.so a11/vendor/lib/libchromatix_imx362_pixel_res4_video_240_cpp.so
+vendor/lib/libchromatix_imx362_pixel_res4_video_240_isp.so a11/vendor/lib/libchromatix_imx362_pixel_res4_video_240_isp.so
+vendor/lib/libchromatix_imx362_pixel_res4_video_60_fullfov_3a.so a11/vendor/lib/libchromatix_imx362_pixel_res4_video_60_fullfov_3a.so
+vendor/lib/libchromatix_imx362_pixel_res4_video_60_fullfov_cpp.so a11/vendor/lib/libchromatix_imx362_pixel_res4_video_60_fullfov_cpp.so
+vendor/lib/libchromatix_imx362_pixel_res4_video_60_fullfov_isp.so a11/vendor/lib/libchromatix_imx362_pixel_res4_video_60_fullfov_isp.so
+vendor/lib/libchromatix_imx362_pixel_res7_video_30_llv_3a.so a11/vendor/lib/libchromatix_imx362_pixel_res7_video_30_llv_3a.so
+vendor/lib/libchromatix_imx362_pixel_res7_video_30_llv_cpp.so a11/vendor/lib/libchromatix_imx362_pixel_res7_video_30_llv_cpp.so
+vendor/lib/libchromatix_imx362_pixel_res7_video_30_llv_cpp_preview.so a11/vendor/lib/libchromatix_imx362_pixel_res7_video_30_llv_cpp_preview.so
+vendor/lib/libchromatix_imx362_pixel_res7_video_30_llv_isp.so a11/vendor/lib/libchromatix_imx362_pixel_res7_video_30_llv_isp.so
+vendor/lib/libchromatix_imx362_pixel_res7_video_30_llv_isp_preview.so a11/vendor/lib/libchromatix_imx362_pixel_res7_video_30_llv_isp_preview.so
+vendor/lib/libchromatix_imx362_pixel_zzhdr_common.so a11/vendor/lib/libchromatix_imx362_pixel_zzhdr_common.so
+vendor/lib/libdiag.so a11/vendor/lib/libdiag.so
+vendor/lib/libdrm.so a11/vendor/lib/libdrm.so
+vendor/lib/libdrmutils.so a11/vendor/lib/libdrmutils.so
+vendor/lib/libdsutils.so a11/vendor/lib/libdsutils.so
+vendor/lib/libeaselcomm.so a11/vendor/lib/libeaselcomm.so
+vendor/lib/libeaselcontrol.amber.so a11/vendor/lib/libeaselcontrol.amber.so
+vendor/lib/libeglc2d.so a11/vendor/lib/libeglc2d.so
+vendor/lib/libfastcvopt.so a11/vendor/lib/libfastcvopt.so
+vendor/lib/libflash_pmic.so a11/vendor/lib/libflash_pmic.so
+vendor/lib/libgcam_ae.so a11/vendor/lib/libgcam_ae.so
+vendor/lib/libgpustats.so a11/vendor/lib/libgpustats.so
+vendor/lib/libgsl.so a11/vendor/lib/libgsl.so
+vendor/lib/libhdrplusclient.so a11/vendor/lib/libhdrplusclient.so
+vendor/lib/libhdrplusclientimpl.so a11/vendor/lib/libhdrplusclientimpl.so
+vendor/lib/libhdrplusmessenger.so a11/vendor/lib/libhdrplusmessenger.so
+vendor/lib/libhidltransport.so a11/vendor/lib/libhidltransport.so
+vendor/lib/libidl.so a11/vendor/lib/libidl.so
+vendor/lib/libjpegdhw.so a11/vendor/lib/libjpegdhw.so
+vendor/lib/libjpegdmahw.so a11/vendor/lib/libjpegdmahw.so
+vendor/lib/libjpegehw.so a11/vendor/lib/libjpegehw.so
+vendor/lib/libllvm-glnext.so a11/vendor/lib/libllvm-glnext.so
+vendor/lib/libllvm-qcom.so a11/vendor/lib/libllvm-qcom.so
+vendor/lib/libmdmdetect.so a11/vendor/lib/libmdmdetect.so
+vendor/lib/libmmcamera2_c2d_module.so a11/vendor/lib/libmmcamera2_c2d_module.so
+vendor/lib/libmmcamera2_cpp_module.so a11/vendor/lib/libmmcamera2_cpp_module.so
+vendor/lib/libmmcamera2_iface_modules.so a11/vendor/lib/libmmcamera2_iface_modules.so
+vendor/lib/libmmcamera2_imglib_modules.so a11/vendor/lib/libmmcamera2_imglib_modules.so
+vendor/lib/libmmcamera2_isp_modules.so a11/vendor/lib/libmmcamera2_isp_modules.so
+vendor/lib/libmmcamera2_mct.so a11/vendor/lib/libmmcamera2_mct.so
+vendor/lib/libmmcamera2_mct_shimlayer.so a11/vendor/lib/libmmcamera2_mct_shimlayer.so
+vendor/lib/libmmcamera2_pp_buf_mgr.so a11/vendor/lib/libmmcamera2_pp_buf_mgr.so
+vendor/lib/libmmcamera2_pproc_modules.so a11/vendor/lib/libmmcamera2_pproc_modules.so
+vendor/lib/libmmcamera2_q3a_core.so a11/vendor/lib/libmmcamera2_q3a_core.so
+vendor/lib/libmmcamera2_sensor_modules.so a11/vendor/lib/libmmcamera2_sensor_modules.so
+vendor/lib/libmmcamera2_stats_algorithm.so a11/vendor/lib/libmmcamera2_stats_algorithm.so
+vendor/lib/libmmcamera2_stats_lib.so a11/vendor/lib/libmmcamera2_stats_lib.so
+vendor/lib/libmmcamera2_stats_modules.so a11/vendor/lib/libmmcamera2_stats_modules.so
+vendor/lib/libmmcamera_FW_utils.so a11/vendor/lib/libmmcamera_FW_utils.so
+vendor/lib/libmmcamera_dbg.so a11/vendor/lib/libmmcamera_dbg.so
+vendor/lib/libmmcamera_eeprom_util.so a11/vendor/lib/libmmcamera_eeprom_util.so
+vendor/lib/libmmcamera_eztune_module.so a11/vendor/lib/libmmcamera_eztune_module.so
+vendor/lib/libmmcamera_facedetection_lib.so a11/vendor/lib/libmmcamera_facedetection_lib.so
+vendor/lib/libmmcamera_faceproc.so a11/vendor/lib/libmmcamera_faceproc.so
+vendor/lib/libmmcamera_faceproc2.so a11/vendor/lib/libmmcamera_faceproc2.so
+vendor/lib/libmmcamera_imglib.so a11/vendor/lib/libmmcamera_imglib.so
+vendor/lib/libmmcamera_imx179.so a11/vendor/lib/libmmcamera_imx179.so
+vendor/lib/libmmcamera_imx362.so a11/vendor/lib/libmmcamera_imx362.so
+vendor/lib/libmmcamera_interface.so a11/vendor/lib/libmmcamera_interface.so
+vendor/lib/libmmcamera_isp_abf48.so a11/vendor/lib/libmmcamera_isp_abf48.so
+vendor/lib/libmmcamera_isp_aec_bg_stats47.so a11/vendor/lib/libmmcamera_isp_aec_bg_stats47.so
+vendor/lib/libmmcamera_isp_bf_stats47.so a11/vendor/lib/libmmcamera_isp_bf_stats47.so
+vendor/lib/libmmcamera_isp_bg_stats46.so a11/vendor/lib/libmmcamera_isp_bg_stats46.so
+vendor/lib/libmmcamera_isp_bhist_stats44.so a11/vendor/lib/libmmcamera_isp_bhist_stats44.so
+vendor/lib/libmmcamera_isp_black_level48.so a11/vendor/lib/libmmcamera_isp_black_level48.so
+vendor/lib/libmmcamera_isp_bpc48.so a11/vendor/lib/libmmcamera_isp_bpc48.so
+vendor/lib/libmmcamera_isp_cac47.so a11/vendor/lib/libmmcamera_isp_cac47.so
+vendor/lib/libmmcamera_isp_chroma_enhan40.so a11/vendor/lib/libmmcamera_isp_chroma_enhan40.so
+vendor/lib/libmmcamera_isp_chroma_suppress40.so a11/vendor/lib/libmmcamera_isp_chroma_suppress40.so
+vendor/lib/libmmcamera_isp_clamp_encoder40.so a11/vendor/lib/libmmcamera_isp_clamp_encoder40.so
+vendor/lib/libmmcamera_isp_clamp_video40.so a11/vendor/lib/libmmcamera_isp_clamp_video40.so
+vendor/lib/libmmcamera_isp_clamp_viewfinder40.so a11/vendor/lib/libmmcamera_isp_clamp_viewfinder40.so
+vendor/lib/libmmcamera_isp_color_correct46.so a11/vendor/lib/libmmcamera_isp_color_correct46.so
+vendor/lib/libmmcamera_isp_color_xform_encoder46.so a11/vendor/lib/libmmcamera_isp_color_xform_encoder46.so
+vendor/lib/libmmcamera_isp_color_xform_video46.so a11/vendor/lib/libmmcamera_isp_color_xform_video46.so
+vendor/lib/libmmcamera_isp_color_xform_viewfinder46.so a11/vendor/lib/libmmcamera_isp_color_xform_viewfinder46.so
+vendor/lib/libmmcamera_isp_cs_stats46.so a11/vendor/lib/libmmcamera_isp_cs_stats46.so
+vendor/lib/libmmcamera_isp_demosaic48.so a11/vendor/lib/libmmcamera_isp_demosaic48.so
+vendor/lib/libmmcamera_isp_demux48.so a11/vendor/lib/libmmcamera_isp_demux48.so
+vendor/lib/libmmcamera_isp_fovcrop_encoder46.so a11/vendor/lib/libmmcamera_isp_fovcrop_encoder46.so
+vendor/lib/libmmcamera_isp_fovcrop_video46.so a11/vendor/lib/libmmcamera_isp_fovcrop_video46.so
+vendor/lib/libmmcamera_isp_fovcrop_viewfinder46.so a11/vendor/lib/libmmcamera_isp_fovcrop_viewfinder46.so
+vendor/lib/libmmcamera_isp_gamma44.so a11/vendor/lib/libmmcamera_isp_gamma44.so
+vendor/lib/libmmcamera_isp_gic48.so a11/vendor/lib/libmmcamera_isp_gic48.so
+vendor/lib/libmmcamera_isp_gtm46.so a11/vendor/lib/libmmcamera_isp_gtm46.so
+vendor/lib/libmmcamera_isp_hdr48.so a11/vendor/lib/libmmcamera_isp_hdr48.so
+vendor/lib/libmmcamera_isp_hdr_be_stats46.so a11/vendor/lib/libmmcamera_isp_hdr_be_stats46.so
+vendor/lib/libmmcamera_isp_hdr_bhist_stats44.so a11/vendor/lib/libmmcamera_isp_hdr_bhist_stats44.so
+vendor/lib/libmmcamera_isp_ihist_stats46.so a11/vendor/lib/libmmcamera_isp_ihist_stats46.so
+vendor/lib/libmmcamera_isp_linearization40.so a11/vendor/lib/libmmcamera_isp_linearization40.so
+vendor/lib/libmmcamera_isp_ltm47.so a11/vendor/lib/libmmcamera_isp_ltm47.so
+vendor/lib/libmmcamera_isp_mce40.so a11/vendor/lib/libmmcamera_isp_mce40.so
+vendor/lib/libmmcamera_isp_mesh_rolloff44.so a11/vendor/lib/libmmcamera_isp_mesh_rolloff44.so
+vendor/lib/libmmcamera_isp_pdaf48.so a11/vendor/lib/libmmcamera_isp_pdaf48.so
+vendor/lib/libmmcamera_isp_pedestal_correct46.so a11/vendor/lib/libmmcamera_isp_pedestal_correct46.so
+vendor/lib/libmmcamera_isp_rs_stats46.so a11/vendor/lib/libmmcamera_isp_rs_stats46.so
+vendor/lib/libmmcamera_isp_scaler_encoder46.so a11/vendor/lib/libmmcamera_isp_scaler_encoder46.so
+vendor/lib/libmmcamera_isp_scaler_video46.so a11/vendor/lib/libmmcamera_isp_scaler_video46.so
+vendor/lib/libmmcamera_isp_scaler_viewfinder46.so a11/vendor/lib/libmmcamera_isp_scaler_viewfinder46.so
+vendor/lib/libmmcamera_isp_sce40.so a11/vendor/lib/libmmcamera_isp_sce40.so
+vendor/lib/libmmcamera_isp_snr47.so a11/vendor/lib/libmmcamera_isp_snr47.so
+vendor/lib/libmmcamera_isp_sub_module.so a11/vendor/lib/libmmcamera_isp_sub_module.so
+vendor/lib/libmmcamera_ois_utils.so a11/vendor/lib/libmmcamera_ois_utils.so
+vendor/lib/libmmcamera_onsemi_lc898123f40xc_eeprom.so a11/vendor/lib/libmmcamera_onsemi_lc898123f40xc_eeprom.so
+vendor/lib/libmmcamera_pdaf.so a11/vendor/lib/libmmcamera_pdaf.so
+vendor/lib/libmmcamera_pdafcamif.so a11/vendor/lib/libmmcamera_pdafcamif.so
+vendor/lib/libmmcamera_ppbase_module.so a11/vendor/lib/libmmcamera_ppbase_module.so
+vendor/lib/libmmcamera_ppeiscore.so a11/vendor/lib/libmmcamera_ppeiscore.so
+vendor/lib/libmmcamera_primax_g802l_eeprom.so a11/vendor/lib/libmmcamera_primax_g802l_eeprom.so
+vendor/lib/libmmcamera_thread_services.so a11/vendor/lib/libmmcamera_thread_services.so
+vendor/lib/libmmcamera_tintless_algo.so a11/vendor/lib/libmmcamera_tintless_algo.so
+vendor/lib/libmmjpeg.so a11/vendor/lib/libmmjpeg.so
+vendor/lib/libmmjpeg_interface.so a11/vendor/lib/libmmjpeg_interface.so
+vendor/lib/libmmqjpeg_codec.so a11/vendor/lib/libmmqjpeg_codec.so
+vendor/lib/libmmqjpegdma.so a11/vendor/lib/libmmqjpegdma.so
+vendor/lib/libmotion_ae.so a11/vendor/lib/libmotion_ae.so
+vendor/lib/libois_lc898123f40.so a11/vendor/lib/libois_lc898123f40.so
+vendor/lib/libprotobuf-cpp-lite-3.9.1.so a11/vendor/lib/libprotobuf-cpp-lite-3.9.1.so
+vendor/lib/libqdMetaData.so a11/vendor/lib/libqdMetaData.so
+vendor/lib/libqmi.so a11/vendor/lib/libqmi.so
+vendor/lib/libqmi_cci.so a11/vendor/lib/libqmi_cci.so
+vendor/lib/libqmi_client_helper.so a11/vendor/lib/libqmi_client_helper.so
+vendor/lib/libqmi_client_qmux.so a11/vendor/lib/libqmi_client_qmux.so
+vendor/lib/libqmi_encdec.so a11/vendor/lib/libqmi_encdec.so
+vendor/lib/libqmiservices.so a11/vendor/lib/libqmiservices.so
+vendor/lib/libqomx_core.so a11/vendor/lib/libqomx_core.so
+vendor/lib/libqomx_jpegdec.so a11/vendor/lib/libqomx_jpegdec.so
+vendor/lib/libqomx_jpegenc.so a11/vendor/lib/libqomx_jpegenc.so
+vendor/lib/libqomx_jpegenc_pipe.so a11/vendor/lib/libqomx_jpegenc_pipe.so
+vendor/lib/libqservice.so a11/vendor/lib/libqservice.so
+vendor/lib/libsensorndkbridge.so a11/vendor/lib/libsensorndkbridge.so
+vendor/lib/libtime_genoff.so a11/vendor/lib/libtime_genoff.so
+vendor/lib/libtracking_af.so a11/vendor/lib/libtracking_af.so
+
+# Android 11 64-bit chroot for the Qualcomm daemons (/system/v11): modem/wifi daemons,
+# sensors.qcom + sensor HAL, NXP NFC HAL, bionic/linker from the runtime APEX
+dir v11/root/data
+dir v11/root/dev
+dir v11/root/dsp
+dir v11/root/firmware
+dir v11/root/mnt/vendor/persist
+dir v11/root/persist
+dir v11/root/proc
+dir v11/root/sys
+dir v11/root/vendor/firmware_mnt
+system/product/etc/libnfc-nci.conf v11/root/product/etc/libnfc-nci.conf
+apex/com.android.runtime/bin/linker64 v11/root/system/bin/linker64
+system/product/etc/libnfc-nci.conf v11/root/system/etc/libnfc-nci.conf
+system/lib64/android.hardware.nfc@1.0.so v11/root/system/lib64/android.hardware.nfc@1.0.so
+system/lib64/android.hardware.nfc@1.1.so v11/root/system/lib64/android.hardware.nfc@1.1.so
+system/lib64/android.hardware.nfc@1.2.so v11/root/system/lib64/android.hardware.nfc@1.2.so
+apex/com.android.vndk.current/lib64/android.hardware.secure_element@1.0.so v11/root/system/lib64/android.hardware.secure_element@1.0.so
+system/lib64/android.system.suspend@1.0.so v11/root/system/lib64/android.system.suspend@1.0.so
+system/lib64/ld-android.so v11/root/system/lib64/ld-android.so
+system/lib64/libbase.so v11/root/system/lib64/libbase.so
+system/lib64/libbinder.so v11/root/system/lib64/libbinder.so
+system/lib64/libc++.so v11/root/system/lib64/libc++.so
+system/lib64/bootstrap/libc.so v11/root/system/lib64/libc.so
+system/lib64/libcgrouprc.so v11/root/system/lib64/libcgrouprc.so
+system/lib64/libcutils.so v11/root/system/lib64/libcutils.so
+system/lib64/bootstrap/libdl.so v11/root/system/lib64/libdl.so
+system/lib64/bootstrap/libdl_android.so v11/root/system/lib64/libdl_android.so
+system/lib64/libhardware.so v11/root/system/lib64/libhardware.so
+system/lib64/libhardware_legacy.so v11/root/system/lib64/libhardware_legacy.so
+system/lib64/libhidlbase.so v11/root/system/lib64/libhidlbase.so
+system/lib64/liblog.so v11/root/system/lib64/liblog.so
+system/lib64/bootstrap/libm.so v11/root/system/lib64/libm.so
+apex/com.android.vndk.current/lib64/libnl.so v11/root/system/lib64/libnl.so
+system/lib64/libpower.so v11/root/system/lib64/libpower.so
+system/lib64/libprocessgroup.so v11/root/system/lib64/libprocessgroup.so
+system/lib64/libutils.so v11/root/system/lib64/libutils.so
+system/lib64/libvndksupport.so v11/root/system/lib64/libvndksupport.so
+system/lib64/libz.so v11/root/system/lib64/libz.so
+vendor/bin/cnss-daemon v11/root/vendor/bin/cnss-daemon
+vendor/bin/irsc_util v11/root/vendor/bin/irsc_util
+vendor/bin/pd-mapper v11/root/vendor/bin/pd-mapper
+vendor/bin/rmt_storage v11/root/vendor/bin/rmt_storage
+vendor/bin/sensors.qcom v11/root/vendor/bin/sensors.qcom
+vendor/bin/tftp_server v11/root/vendor/bin/tftp_server
+vendor/etc/libnfc-nxp.conf v11/root/vendor/etc/libnfc-nxp.conf
+vendor/etc/sec_config v11/root/vendor/etc/sec_config
+vendor/etc/seccomp_policy/configstore@1.1.policy v11/root/vendor/etc/seccomp_policy/configstore@1.1.policy
+vendor/etc/seccomp_policy/mediacodec.policy v11/root/vendor/etc/seccomp_policy/mediacodec.policy
+vendor/etc/sensors/hals.conf v11/root/vendor/etc/sensors/hals.conf
+vendor/etc/sensors/sensor_def_wahoo.conf v11/root/vendor/etc/sensors/sensor_def_wahoo.conf
+vendor/etc/wifi/p2p_supplicant_overlay.conf v11/root/vendor/etc/wifi/p2p_supplicant_overlay.conf
+vendor/etc/wifi/wifi_concurrency_cfg.txt v11/root/vendor/etc/wifi/wifi_concurrency_cfg.txt
+vendor/etc/wifi/wpa_supplicant.conf v11/root/vendor/etc/wifi/wpa_supplicant.conf
+vendor/etc/wifi/wpa_supplicant_overlay.conf v11/root/vendor/etc/wifi/wpa_supplicant_overlay.conf
+vendor/firmware/bdwlan.bin v11/root/vendor/firmware/bdwlan.bin
+vendor/firmware/crnv21.bin v11/root/vendor/firmware/crnv21.bin
+vendor/firmware/modemuw.jsn v11/root/vendor/firmware/modemuw.jsn
+vendor/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini v11/root/vendor/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini
+vendor/firmware/wlanmdsp.mbn v11/root/vendor/firmware/wlanmdsp.mbn
+vendor/lib64/ese_spi_nxp.so v11/root/vendor/lib64/ese_spi_nxp.so
+vendor/lib64/hw/bootctrl.msm8998.so v11/root/vendor/lib64/hw/bootctrl.msm8998.so
+vendor/lib64/libcld80211.so v11/root/vendor/lib64/libcld80211.so
+vendor/lib64/libdiag.so v11/root/vendor/lib64/libdiag.so
+vendor/lib64/libdsutils.so v11/root/vendor/lib64/libdsutils.so
+vendor/lib64/libelmyra-protos.so v11/root/vendor/lib64/libelmyra-protos.so
+vendor/lib64/libidl.so v11/root/vendor/lib64/libidl.so
+vendor/lib64/libjson.so v11/root/vendor/lib64/libjson.so
+vendor/lib64/libmdmdetect.so v11/root/vendor/lib64/libmdmdetect.so
+vendor/lib64/libprotobuf-cpp-full-3.9.1.so v11/root/vendor/lib64/libprotobuf-cpp-full-3.9.1.so
+vendor/lib64/libqmi_cci.so v11/root/vendor/lib64/libqmi_cci.so
+vendor/lib64/libqmi_client_qmux.so v11/root/vendor/lib64/libqmi_client_qmux.so
+vendor/lib64/libqmi_common_so.so v11/root/vendor/lib64/libqmi_common_so.so
+vendor/lib64/libqmi_csi.so v11/root/vendor/lib64/libqmi_csi.so
+vendor/lib64/libqmi_encdec.so v11/root/vendor/lib64/libqmi_encdec.so
+vendor/lib64/libqmiservices.so v11/root/vendor/lib64/libqmiservices.so
+vendor/lib64/libsdsprpc.so v11/root/vendor/lib64/libsdsprpc.so
+vendor/lib64/libsensor1.so v11/root/vendor/lib64/libsensor1.so
+vendor/lib64/libsensor_reg.so v11/root/vendor/lib64/libsensor_reg.so
+vendor/lib64/libsmemlog.so v11/root/vendor/lib64/libsmemlog.so
+vendor/lib64/libsns_low_lat_stream_stub.so v11/root/vendor/lib64/libsns_low_lat_stream_stub.so
+vendor/lib64/libtime_genoff.so v11/root/vendor/lib64/libtime_genoff.so
+vendor/lib64/nfc_nci_nxp.so v11/root/vendor/lib64/nfc_nci_nxp.so
+vendor/lib64/sensors.msm8998.so v11/root/vendor/lib64/sensors.msm8998.so
+vendor/lib64/vendor.nxp.nxpese@1.0.so v11/root/vendor/lib64/vendor.nxp.nxpese@1.0.so
+vendor/lib64/vendor.nxp.nxpnfc@1.0.so v11/root/vendor/lib64/vendor.nxp.nxpnfc@1.0.so
+vendor/mbn/mcfg/configs/mcfg_sw/generic/APAC/Reliance/Commercial/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/APAC/Reliance/Commercial/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/AUS/Default/VoLTE/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/AUS/Default/VoLTE/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/AUS/Telstra/VoLTE/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/AUS/Telstra/VoLTE/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/DT/VoLTE/Commercial/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/DT/VoLTE/Commercial/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/EE/Commercial/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/EE/Commercial/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/H3G/VoLTE/UK/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/H3G/VoLTE/UK/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/ID/Non_VoLTE/UK/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/ID/Non_VoLTE/UK/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/Telefonica/Commercial/DE/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/Telefonica/Commercial/DE/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/Telefonica/Non_VoLTE/UK/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/Telefonica/Non_VoLTE/UK/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/Vodafone/Lab/VoLTE/Germany/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/Vodafone/Lab/VoLTE/Germany/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/Vodafone/VoLTE/Germany/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/Vodafone/VoLTE/Germany/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/Vodafone/VoLTE/UK/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/EU/Vodafone/VoLTE/UK/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/ATT/VoLTE/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/ATT/VoLTE/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Bell/VoLTE/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Bell/VoLTE/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Cricket/VoLTE/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Cricket/VoLTE/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Freedom/VoLTE/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Freedom/VoLTE/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Koodo/non_VoLTE/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Koodo/non_VoLTE/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/ROGERS/Commercial/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/ROGERS/Commercial/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Sprint/Commercial/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Sprint/Commercial/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/TMO/Commercial/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/TMO/Commercial/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Telus/VoLTE/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Telus/VoLTE/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/USCC/Commercial/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/USCC/Commercial/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Verizon/hVoLTE/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Verizon/hVoLTE/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Videotron/non_VoLTE/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/NA/Videotron/non_VoLTE/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/common/PixelLite/Commercial/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/common/PixelLite/Commercial/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/generic/common/WildCard/WildCard/mcfg_sw.mbn v11/root/vendor/mbn/mcfg/configs/mcfg_sw/generic/common/WildCard/WildCard/mcfg_sw.mbn
+vendor/mbn/mcfg/configs/mcfg_sw/mbn.ver v11/root/vendor/mbn/mcfg/configs/mcfg_sw/mbn.ver
+vendor/mbn/mcfg/configs/mcfg_sw/mbn_sw.dig v11/root/vendor/mbn/mcfg/configs/mcfg_sw/mbn_sw.dig
+vendor/mbn/mcfg/configs/mcfg_sw/oem_sw.txt v11/root/vendor/mbn/mcfg/configs/mcfg_sw/oem_sw.txt
+link v11/root/vendor/firmware/modemr.jsn /vendor/firmware_mnt/image/modemr.jsn
+link v11/root/vendor/rfs/apq/gnss/hlos /persist/hlos_rfs/shared
+link v11/root/vendor/rfs/apq/gnss/ramdumps /data/vendor/tombstones/rfs/modem
+link v11/root/vendor/rfs/apq/gnss/readonly/firmware /firmware
+link v11/root/vendor/rfs/apq/gnss/readonly/vendor/firmware /vendor/firmware
+link v11/root/vendor/rfs/apq/gnss/readwrite /persist/rfs/apq/gnss
+link v11/root/vendor/rfs/apq/gnss/shared /persist/rfs/shared
+link v11/root/vendor/rfs/mdm/adsp/hlos /persist/hlos_rfs/shared
+link v11/root/vendor/rfs/mdm/adsp/ramdumps /data/vendor/tombstones/rfs/lpass
+link v11/root/vendor/rfs/mdm/adsp/readonly/firmware /firmware
+link v11/root/vendor/rfs/mdm/adsp/readonly/vendor/firmware /vendor/firmware
+link v11/root/vendor/rfs/mdm/adsp/readwrite /persist/rfs/mdm/adsp
+link v11/root/vendor/rfs/mdm/adsp/shared /persist/rfs/shared
+link v11/root/vendor/rfs/mdm/mpss/hlos /persist/hlos_rfs/shared
+link v11/root/vendor/rfs/mdm/mpss/ramdumps /data/vendor/tombstones/rfs/modem
+link v11/root/vendor/rfs/mdm/mpss/readonly/firmware /firmware
+link v11/root/vendor/rfs/mdm/mpss/readonly/vendor/firmware /vendor/firmware
+link v11/root/vendor/rfs/mdm/mpss/readwrite /persist/rfs/mdm/mpss
+link v11/root/vendor/rfs/mdm/mpss/shared /persist/rfs/shared
+link v11/root/vendor/rfs/mdm/slpi/hlos /persist/hlos_rfs/shared
+link v11/root/vendor/rfs/mdm/slpi/ramdumps /data/vendor/tombstones/rfs/slpi
+link v11/root/vendor/rfs/mdm/slpi/readonly/firmware /firmware
+link v11/root/vendor/rfs/mdm/slpi/readwrite /persist/rfs/mdm/slpi
+link v11/root/vendor/rfs/mdm/slpi/shared /persist/rfs/shared
+link v11/root/vendor/rfs/mdm/tn/hlos /persist/hlos_rfs/shared
+link v11/root/vendor/rfs/mdm/tn/ramdumps /data/vendor/tombstones/rfs/tn
+link v11/root/vendor/rfs/mdm/tn/readonly/firmware /firmware
+link v11/root/vendor/rfs/mdm/tn/readwrite /persist/rfs/mdm/tn
+link v11/root/vendor/rfs/mdm/tn/shared /persist/rfs/shared
+link v11/root/vendor/rfs/msm/adsp/hlos /persist/hlos_rfs/shared
+link v11/root/vendor/rfs/msm/adsp/ramdumps /data/vendor/tombstones/rfs/lpass
+link v11/root/vendor/rfs/msm/adsp/readonly/firmware /firmware
+link v11/root/vendor/rfs/msm/adsp/readonly/vendor/firmware /vendor/firmware
+link v11/root/vendor/rfs/msm/adsp/readwrite /persist/rfs/msm/adsp
+link v11/root/vendor/rfs/msm/adsp/shared /persist/rfs/shared
+link v11/root/vendor/rfs/msm/mpss/hlos /persist/hlos_rfs/shared
+link v11/root/vendor/rfs/msm/mpss/ramdumps /data/vendor/tombstones/rfs/modem
+link v11/root/vendor/rfs/msm/mpss/readonly/firmware /firmware
+link v11/root/vendor/rfs/msm/mpss/readonly/mbn /vendor/mbn
+link v11/root/vendor/rfs/msm/mpss/readonly/vendor/firmware /vendor/firmware
+link v11/root/vendor/rfs/msm/mpss/readwrite /persist/rfs/msm/mpss
+link v11/root/vendor/rfs/msm/mpss/shared /persist/rfs/shared
+link v11/root/vendor/rfs/msm/slpi/hlos /persist/hlos_rfs/shared
+link v11/root/vendor/rfs/msm/slpi/ramdumps /data/vendor/tombstones/rfs/slpi
+link v11/root/vendor/rfs/msm/slpi/readonly/firmware /firmware
+link v11/root/vendor/rfs/msm/slpi/readwrite /persist/rfs/msm/slpi
+link v11/root/vendor/rfs/msm/slpi/shared /persist/rfs/shared
+
+# Firmware loaded by the kernel (/system/vendor/firmware): ADSP, SLPI, Venus, Adreno a5xx,
+# touch panel, haptics, audio amplifiers, camera CPP, Easel (Pixel Visual Core) used by the camera path
+vendor/firmware/a530_gpmu.fw2 firmware/a530_gpmu.fw2
+vendor/firmware/a530_pfp.fw firmware/a530_pfp.fw
+vendor/firmware/a530_pm4.fw firmware/a530_pm4.fw
+vendor/firmware/a540_gpmu.fw2 firmware/a540_gpmu.fw2
+vendor/firmware/a540_zap.b00 firmware/a540_zap.b00
+vendor/firmware/a540_zap.b01 firmware/a540_zap.b01
+vendor/firmware/a540_zap.b02 firmware/a540_zap.b02
+vendor/firmware/a540_zap.elf firmware/a540_zap.elf
+vendor/firmware/a540_zap.mdt firmware/a540_zap.mdt
+vendor/firmware/adsp.b00 firmware/adsp.b00
+vendor/firmware/adsp.b01 firmware/adsp.b01
+vendor/firmware/adsp.b02 firmware/adsp.b02
+vendor/firmware/adsp.b03 firmware/adsp.b03
+vendor/firmware/adsp.b04 firmware/adsp.b04
+vendor/firmware/adsp.b05 firmware/adsp.b05
+vendor/firmware/adsp.b06 firmware/adsp.b06
+vendor/firmware/adsp.b08 firmware/adsp.b08
+vendor/firmware/adsp.b09 firmware/adsp.b09
+vendor/firmware/adsp.b11 firmware/adsp.b11
+vendor/firmware/adsp.mdt firmware/adsp.mdt
+vendor/firmware/bdwlan.bin firmware/bdwlan.bin
+vendor/firmware/cpe_9340.b01 firmware/cpe_9340.b01
+vendor/firmware/cpe_9340.b03 firmware/cpe_9340.b03
+vendor/firmware/cpe_9340.b05 firmware/cpe_9340.b05
+vendor/firmware/cpe_9340.b06 firmware/cpe_9340.b06
+vendor/firmware/cpe_9340.b07 firmware/cpe_9340.b07
+vendor/firmware/cpe_9340.b09 firmware/cpe_9340.b09
+vendor/firmware/cpe_9340.b11 firmware/cpe_9340.b11
+vendor/firmware/cpe_9340.b13 firmware/cpe_9340.b13
+vendor/firmware/cpe_9340.b15 firmware/cpe_9340.b15
+vendor/firmware/cpe_9340.b16 firmware/cpe_9340.b16
+vendor/firmware/cpe_9340.b18 firmware/cpe_9340.b18
+vendor/firmware/cpe_9340.b20 firmware/cpe_9340.b20
+vendor/firmware/cpe_9340.mdt firmware/cpe_9340.mdt
+vendor/firmware/cpp_firmware_v1_10_0.fw firmware/cpp_firmware_v1_10_0.fw
+vendor/firmware/cpp_firmware_v1_12_0.fw firmware/cpp_firmware_v1_12_0.fw
+vendor/firmware/cpp_firmware_v1_1_1.fw firmware/cpp_firmware_v1_1_1.fw
+vendor/firmware/cpp_firmware_v1_1_6.fw firmware/cpp_firmware_v1_1_6.fw
+vendor/firmware/cpp_firmware_v1_2_0.fw firmware/cpp_firmware_v1_2_0.fw
+vendor/firmware/cpp_firmware_v1_4_0.fw firmware/cpp_firmware_v1_4_0.fw
+vendor/firmware/cpp_firmware_v1_5_0.fw firmware/cpp_firmware_v1_5_0.fw
+vendor/firmware/cpp_firmware_v1_5_2.fw firmware/cpp_firmware_v1_5_2.fw
+vendor/firmware/cpp_firmware_v1_6_0.fw firmware/cpp_firmware_v1_6_0.fw
+vendor/firmware/cpp_firmware_v1_8_0.fw firmware/cpp_firmware_v1_8_0.fw
+vendor/firmware/crbtfw21.tlv firmware/crbtfw21.tlv
+vendor/firmware/crnv21.bin firmware/crnv21.bin
+vendor/firmware/drv2624.bin firmware/drv2624.bin
+vendor/firmware/easel/Image firmware/easel/Image
+vendor/firmware/easel/fip.bin firmware/easel/fip.bin
+vendor/firmware/easel/mnh.dtb firmware/easel/mnh.dtb
+vendor/firmware/easel/ramdisk.img firmware/easel/ramdisk.img
+vendor/firmware/ftm4_fw.ftb firmware/ftm4_fw.ftb
+vendor/firmware/ftm4_fw_evt1.ftb firmware/ftm4_fw_evt1.ftb
+vendor/firmware/ftm4_fw_lb.ftb firmware/ftm4_fw_lb.ftb
+vendor/firmware/slpi_v2.b00 firmware/slpi_v2.b00
+vendor/firmware/slpi_v2.b01 firmware/slpi_v2.b01
+vendor/firmware/slpi_v2.b02 firmware/slpi_v2.b02
+vendor/firmware/slpi_v2.b03 firmware/slpi_v2.b03
+vendor/firmware/slpi_v2.b04 firmware/slpi_v2.b04
+vendor/firmware/slpi_v2.b05 firmware/slpi_v2.b05
+vendor/firmware/slpi_v2.b06 firmware/slpi_v2.b06
+vendor/firmware/slpi_v2.b07 firmware/slpi_v2.b07
+vendor/firmware/slpi_v2.b08 firmware/slpi_v2.b08
+vendor/firmware/slpi_v2.b09 firmware/slpi_v2.b09
+vendor/firmware/slpi_v2.b10 firmware/slpi_v2.b10
+vendor/firmware/slpi_v2.b11 firmware/slpi_v2.b11
+vendor/firmware/slpi_v2.b12 firmware/slpi_v2.b12
+vendor/firmware/slpi_v2.b13 firmware/slpi_v2.b13
+vendor/firmware/slpi_v2.b14 firmware/slpi_v2.b14
+vendor/firmware/slpi_v2.mdt firmware/slpi_v2.mdt
+vendor/firmware/tas2557s_PG21_uCDSP.bin firmware/tas2557s_PG21_uCDSP.bin
+vendor/firmware/tas2557s_uCDSP.bin firmware/tas2557s_uCDSP.bin
+vendor/firmware/venus.b00 firmware/venus.b00
+vendor/firmware/venus.b01 firmware/venus.b01
+vendor/firmware/venus.b02 firmware/venus.b02
+vendor/firmware/venus.b03 firmware/venus.b03
+vendor/firmware/venus.b04 firmware/venus.b04
+vendor/firmware/venus.mbn firmware/venus.mbn
+vendor/firmware/venus.mdt firmware/venus.mdt
+vendor/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini
+
+# Stock kernel modules (same vermagic as the stock kernel)
+vendor/lib/modules/ftm4.ko modules/ftm4.ko
+vendor/lib/modules/lge_battery.ko modules/lge_battery.ko
+vendor/lib/modules/sw49408.ko modules/sw49408.ko
+vendor/lib/modules/touch_core_base.ko modules/touch_core_base.ko
+vendor/lib/modules/wlan.ko modules/wlan.ko
+
+# Camera sensor configuration read by mm-camera (/system/vendor/etc/camera)
+vendor/etc/camera/camera_config.xml camera/camera_config.xml
+vendor/etc/camera/imx179_pixel_chromatix.xml camera/imx179_pixel_chromatix.xml
+vendor/etc/camera/imx362_pixel_chromatix.xml camera/imx362_pixel_chromatix.xml
+
+# Stock Pixel boot animation (1440x3040)
+system/product/media/bootanimation.zip bootanimation.zip
