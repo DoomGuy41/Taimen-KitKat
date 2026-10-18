@@ -19,6 +19,10 @@ drivers through two bridges written for this port:
   <img src="docs/images/about.jpg" width="240" alt="About phone: Android 4.4.4, Pixel 2 XL, stock 4.4 kernel">
   <img src="docs/images/settings.jpg" width="240" alt="Settings">
 </p>
+<p align="center">
+  <img src="docs/images/subway.jpg" width="240" alt="Subway Surfers 1.20 (2013)">
+  <img src="docs/images/jetpack.jpg" width="480" alt="Jetpack Joyride 1.7 (2014)">
+</p>
 
 - [Status](#status)
 - [Install](#install)
@@ -395,6 +399,13 @@ scripts/make-release.sh ~/aosp-kk ~/release # fastboot package + checksums
   definitions used to write gnssbridge.
 - **[Open GApps](https://opengapps.org)**: the Google apps package for KitKat.
 - The Android Open Source Project and the Linux kernel.
+
+**GPL.** The kernel is Google's stock taimen kernel from RP1A.201005.004.A1
+(`4.4.223-g52750b8f2138-ab6846512`). Source:
+[kernel/msm, android-msm-wahoo-4.4-android11, commit 52750b8f2138](https://android.googlesource.com/kernel/msm/+/52750b8f2138).
+The only change is the binary rename of the `skip_initramfs` parameter string, done by
+[scripts/patch-kernel.py](scripts/patch-kernel.py). The modules are the stock ones. busybox is
+Ubuntu's `busybox-static` 1:1.37.0-7ubuntu1 ([source](https://launchpad.net/ubuntu/+source/busybox/1:1.37.0-7ubuntu1)).
 
 The code written for this port is under the Apache License 2.0 (see [LICENSE](LICENSE)).
 Patches to AOSP keep the license of the files they modify. Third-party pieces keep their
