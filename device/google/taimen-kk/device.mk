@@ -48,6 +48,12 @@ PRODUCT_PROPERTY_OVERRIDES += \
     dalvik.vm.heapsize=512m \
     ro.opengles.version=196610
 
+# Dalvik gives each thread a 16 KiB interpreter stack by default. Recent Google apps are written
+# for ART (1 MiB stacks): the Play Store's billing code recursed into a StackOverflowError (and
+# a crash dialog) whenever a game connected to it. 256 KiB is Dalvik's maximum.
+PRODUCT_PROPERTY_OVERRIDES += \
+    dalvik.vm.extra-opts=-Xss256k
+
 PRODUCT_CHARACTERISTICS := nosdcard
 
 # Audio: tinyalsa HAL driving the TAS2557 amplifiers, minimal policy (speaker)
