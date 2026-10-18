@@ -43,6 +43,7 @@ drivers through two bridges written for this port:
 | GPS | modem GNSS engine over QMI LOC, XTRA assistance |
 | NFC | reading and writing tags (NXP PN553) |
 | USB | MTP, adb (Developer options), charging |
+| Games of the time | Angry Birds, Jetpack Joyride, Subway Surfers, Temple Run, Fruit Ninja... (see below) |
 | Vibration, notification LED, flash/torch, battery, thermal readings | |
 
 | Partial / untested | |
@@ -100,7 +101,9 @@ Everything proprietary comes from Google's factory image and is extracted at bui
   and the kernel then ignores the ramdisk and mounts `system` as root. KitKat needs its ramdisk.
   The stock kernel is decompressed, `skip_initramfs` is renamed to `want_initramfs`, and the
   image is recompressed (`scripts/patch-kernel.py`). The bootloader keeps adding the parameter,
-  but the kernel no longer recognizes it.
+  but the kernel no longer recognizes it. The recompressed kernel **must use the LZ4 frame
+  format**, like the stock one: with the legacy LZ4 format (`lz4 -l`), the bootloader silently
+  refuses the boot partition and stays in fastboot, without even counting a boot attempt.
 - **Command line too long for KitKat's init.** The Pixel 2 passes more than 1024 bytes, so
   `androidboot.slot_suffix` and `androidboot.serialno` were cut off. The buffer is now 4 KiB.
 - **No by-name links.** KitKat's ueventd does not create `/dev/block/bootdevice/by-name`, so
@@ -317,6 +320,21 @@ device 3.5. `camera.taimen` sits between the two.
 `libstagefrighthw` exposes the Venus codecs through the Android 11 OMX core loaded by libhyb.
 The OMX structures are the same in both versions. KitKat learned HEVC: the MP4 `hvc1`/`hev1`
 boxes, Matroska `V_MPEGH/ISO/HEVC`, `hvcC` parsing and `csd-0`.
+
+### Google apps and recent APKs on Dalvik
+
+KitKat runs apps on Dalvik, which gives each thread a **16 KiB** interpreter stack. Apps written
+in the ART era expect about 1 MiB. The 2022 Play Store bundled with Open GApps recurses deeply in
+its billing code, so every game that connected to in-app billing (Angry Birds, Jetpack Joyride,
+...) made the Play Store throw a `StackOverflowError`, and its crash dialog came back in a loop.
+The build sets `dalvik.vm.extra-opts=-Xss256k`, Dalvik's maximum, which every app process reads
+at startup.
+
+Old APKs from the time also work: Angry Birds (Classic, Rio, Seasons, Space, Star Wars I/II),
+Jetpack Joyride, Fruit Ninja, Subway Surfers, Temple Run, Candy Crush, Flappy Bird, Hill Climb
+Racing and Cut the Rope were tested. Versions built for ARMv7 (32-bit) with a minimum SDK of 19
+or lower install directly. Very early Unity builds may not work: Subway Surfers 1.0 (2012)
+fails to load, but 1.20 (2013) runs.
 
 ### USB, haptics, lights, boot animation, little things
 
